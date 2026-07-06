@@ -1,0 +1,528 @@
+.
+├── project-structure.txt
+├── uch-logistics-backend
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── prisma
+│   │   └── schema.prisma
+│   ├── Readme.md
+│   └── src
+│       ├── config
+│       │   ├── db.js
+│       │   └── prismaClient.js
+│       ├── controllers
+│       │   ├── authController.js
+│       │   ├── commonController.js
+│       │   ├── dashboardController.js
+│       │   ├── driverController.js
+│       │   ├── invoiceController.js
+│       │   ├── invoiceCsvController.js
+│       │   ├── invoicePdfController.js
+│       │   ├── jobController.js
+│       │   ├── selfOwnDriverControllers
+│       │   │   ├── dashboardController.js
+│       │   │   ├── driverController.js
+│       │   │   ├── invoiceController.js
+│       │   │   ├── invoiceCsvController.js
+│       │   │   ├── invoicePdfController.js
+│       │   │   └── jobController.js
+│       │   └── userController.js
+│       ├── helpers
+│       │   ├── driverPositionValidator.js
+│       │   ├── driverValidator.js
+│       │   ├── invoiceValidator.js
+│       │   ├── jobValidator.js
+│       │   ├── slugHelper.js
+│       │   ├── userValidator.js
+│       │   └── validator.js
+│       ├── middleware
+│       │   ├── admin.js
+│       │   ├── driverImageUpload.js
+│       │   ├── errorhandler.js
+│       │   ├── uploadDriverFile.js
+│       │   ├── uploadJobFile.js
+│       │   └── userProfileImageUpload.js
+│       ├── public
+│       │   ├── drivers
+│       │   │   ├── drivers-1771231411435-0.1600134047219115.csv
+│       │   │   ├── drivers-1771231424521-0.5982322522908075.csv
+│       │   │   ├── drivers-1771231530535-0.4656675788114164.csv
+│       │   │   ├── drivers-1771231608710-0.08733892082070471.csv
+│       │   │   ├── drivers-1771231744464-0.9200440690437717.csv
+│       │   │   ├── drivers-1771311715675-0.4521678299976928.csv
+│       │   │   ├── drivers-1772525812196-0.9021258567253321.csv
+│       │   │   ├── drivers-1772528311340-0.15276417741514914.csv
+│       │   │   ├── drivers-1772528325152-0.3665454795143581.csv
+│       │   │   ├── drivers-1773215848614-0.26287170387839054.csv
+│       │   │   ├── drivers-1773215913444-0.6064544580145295.csv
+│       │   │   ├── drivers-1773215973440-0.18781536819776368.csv
+│       │   │   ├── drivers-1773217435881-0.32764636645828404.csv
+│       │   │   ├── drivers-1773217550991-0.6993984823542603.csv
+│       │   │   ├── drivers-1773305706246-0.7728510519147382.csv
+│       │   │   ├── drivers-1773988388013-0.8583086226889809.csv
+│       │   │   ├── drivers-1773990629045-0.6335964596618426.csv
+│       │   │   ├── drivers-1774527132008-0.2605231592289554.csv
+│       │   │   ├── drivers-1774529389130-0.1975157513381398.csv
+│       │   │   ├── drivers-1774608675015-wxj80t.csv
+│       │   │   ├── drivers-1774608805671-kd0cw9.pdf
+│       │   │   ├── drivers-1774608848669-pa0ejo.pdf
+│       │   │   ├── drivers-1774608936975-uyimx6.pdf
+│       │   │   ├── drivers-1774609433428-9mr2ow.csv
+│       │   │   ├── drivers-1774936084052-f68jge.pdf
+│       │   │   ├── drivers-1774936111512-3rlpiu.csv
+│       │   │   ├── drivers-1774936376097-z06fdi.csv
+│       │   │   ├── drivers-1774936471297-yt3rec.csv
+│       │   │   ├── drivers-1774936609655-8ccnzj.csv
+│       │   │   ├── drivers-1774936617873-6ss7nd.pdf
+│       │   │   ├── drivers-1774936676047-qzu6hv.csv
+│       │   │   ├── drivers-1774936731413-52y7pi.csv
+│       │   │   ├── drivers-1775025472295-88kiwx.pdf
+│       │   │   ├── drivers-1775025483750-7v0lu7.csv
+│       │   │   ├── drivers-1775031097861-39pi6j.pdf
+│       │   │   ├── drivers-1775110006662-z2fnih.csv
+│       │   │   ├── drivers-1775110058010-amd2y7.csv
+│       │   │   ├── drivers-1775113637945-6s34br.csv
+│       │   │   ├── drivers-1775113892236-v3gllm.csv
+│       │   │   ├── drivers-1775114365013-8e4ksw.csv
+│       │   │   ├── drivers-1775115109689-11jeub.csv
+│       │   │   ├── drivers-1775115392596-h95eed.csv
+│       │   │   ├── drivers-1775217850801-4tqt3a.csv
+│       │   │   ├── drivers-1775456086474-ass0vb.csv
+│       │   │   ├── drivers-1775539835477-3v9nda.csv
+│       │   │   ├── drivers-1775541416660-jrsia3.csv
+│       │   │   ├── drivers-1775541553133-xtbqmh.pdf
+│       │   │   ├── drivers-1775642670968-ncumtt.csv
+│       │   │   ├── drivers-1776070467521-qc54gc.csv
+│       │   │   ├── drivers-1776077535309-8m8dg2.csv
+│       │   │   ├── drivers-1776673351384-66s8p2.csv
+│       │   │   ├── drivers-1777024287598-hf81nj.csv
+│       │   │   ├── drivers-1777267223966-iw0ci5.csv
+│       │   │   ├── drivers-1777373410652-uq1t2m.csv
+│       │   │   ├── drivers-1777531854855-s6b0sj.csv
+│       │   │   ├── drivers-1778053745830-wzlclm.csv
+│       │   │   ├── drivers-1778484538994-d6qpd9.csv
+│       │   │   ├── drivers-1778484642314-ojyn0n.csv
+│       │   │   ├── drivers-1778484760829-f07cjv.pdf
+│       │   │   ├── drivers-1778484898283-ii77p7.csv
+│       │   │   ├── drivers-1778485177272-0bvlv2.csv
+│       │   │   ├── drivers-1778485301760-gdsrpb.csv
+│       │   │   ├── drivers-1778569463245-lfhx0l.csv
+│       │   │   ├── drivers-1779258954653-0osboa.csv
+│       │   │   ├── drivers-1779259613985-1jd8vx.csv
+│       │   │   ├── drivers-1779261475025-h7zdw4.csv
+│       │   │   ├── drivers-1779261927507-eipwnb.csv
+│       │   │   ├── drivers-1779262867991-89nle3.csv
+│       │   │   ├── drivers-1779263123171-idmjm6.csv
+│       │   │   ├── drivers-1779429061983-qs1kja.csv
+│       │   │   ├── drivers-1779429336978-ssirfu.csv
+│       │   │   ├── drivers-1779710471935-v0c6yx.csv
+│       │   │   ├── drivers-1779711416757-ozkrr9.csv
+│       │   │   ├── drivers-1779712030883-krtmkt.csv
+│       │   │   ├── drivers-1779712722105-uk1kn1.csv
+│       │   │   ├── drivers-1779713273253-u20l6e.csv
+│       │   │   ├── drivers-1779715092062-fg6h3x.csv
+│       │   │   ├── drivers-1779781792492-dak71j.csv
+│       │   │   ├── drivers-1779785074532-9voz2s.csv
+│       │   │   ├── drivers-1780053189085-xxbpi6.csv
+│       │   │   ├── drivers-1780304084165-7nd0mc.csv
+│       │   │   ├── drivers-1780308783757-z2rpgp.csv
+│       │   │   ├── drivers-1780310992815-tkanuc.csv
+│       │   │   ├── drivers-1780315500953-fbp82r.csv
+│       │   │   ├── drivers-1780379765204-6l9dj1.csv
+│       │   │   ├── drivers-1780396034191-prwct6.csv
+│       │   │   ├── drivers-1780561287872-93qfxa.csv
+│       │   │   ├── drivers-1780576016035-5luzsv.csv
+│       │   │   ├── drivers-1780901227991-iqighe.csv
+│       │   │   └── drivers-1781875788449-k4zos1.csv
+│       │   ├── images
+│       │   │   ├── blue-shade2.png
+│       │   │   ├── blue-shades.png
+│       │   │   ├── logoi.png
+│       │   │   ├── red-shade2.png
+│       │   │   └── red-shade.png
+│       │   ├── invoices
+│       │   │   ├── detailed-invoice-summary-batch-1001-1782908705514.csv
+│       │   │   ├── driver-invoice-summary-1782893026862.csv
+│       │   │   ├── driver-invoice-summary-1782893699885.csv
+│       │   │   └── driver-invoice-summary-1782908694416.csv
+│       │   ├── remittance
+│       │   │   ├── bank-remittance-1775021979240.pdf
+│       │   │   ├── bank-remittance-1775022100036.csv
+│       │   │   ├── bank-remittance-1776070234682.csv
+│       │   │   ├── bank-remittance-1776077467388.pdf
+│       │   │   ├── bank-remittance-1776077481466.csv
+│       │   │   ├── bank-remittance-1776081354159.csv
+│       │   │   ├── bank-remittance-1776084446281.pdf
+│       │   │   ├── bank-remittance-1776342927921.pdf
+│       │   │   ├── bank-remittance-1777528046838.pdf
+│       │   │   ├── bank-remittance-1777528075787.pdf
+│       │   │   ├── bank-remittance-1777530364436.pdf
+│       │   │   ├── bank-remittance-1777530520676.pdf
+│       │   │   ├── bank-remittance-1777530575557.pdf
+│       │   │   ├── bank-remittance-1777530639671.pdf
+│       │   │   ├── bank-remittance-1777530652171.csv
+│       │   │   ├── bank-remittance-1778068083190.pdf
+│       │   │   ├── bank-remittance-1778575764552.pdf
+│       │   │   ├── bank-remittance-1778579288132.pdf
+│       │   │   ├── bank-remittance-1778579394121.pdf
+│       │   │   ├── bank-remittance-1778579430254.pdf
+│       │   │   ├── bank-remittance-1778580653093.pdf
+│       │   │   ├── bank-remittance-1778581421632.pdf
+│       │   │   ├── bank-remittance-1778581434725.csv
+│       │   │   ├── bank-remittance-1778581559719.csv
+│       │   │   ├── bank-remittance-1778742401896.pdf
+│       │   │   ├── bank-remittance-1779180617296.pdf
+│       │   │   ├── bank-remittance-1779368966441.pdf
+│       │   │   ├── bank-remittance-1779369032023.csv
+│       │   │   ├── bank-remittance-1779882609262.pdf
+│       │   │   ├── bank-remittance-1779887618274.pdf
+│       │   │   ├── bank-remittance-1780656891045.pdf
+│       │   │   ├── bank-remittance-1780657596616.pdf
+│       │   │   ├── bank-remittance-1780657596621.pdf
+│       │   │   ├── bank-remittance-1780657818210.pdf
+│       │   │   ├── bank-remittance-1780657818501.pdf
+│       │   │   ├── bank-remittance-1780657854814.pdf
+│       │   │   ├── bank-remittance-1780657854832.pdf
+│       │   │   ├── bank-remittance-1780657915136.pdf
+│       │   │   ├── bank-remittance-1780657915219.pdf
+│       │   │   ├── bank-remittance-1780658279867.pdf
+│       │   │   ├── bank-remittance-1780659000419.pdf
+│       │   │   ├── bank-remittance-1780659313369.pdf
+│       │   │   ├── bank-remittance-1780660115190.pdf
+│       │   │   ├── bank-remittance-1780660293703.pdf
+│       │   │   ├── bank-remittance-1780897909112.pdf
+│       │   │   ├── bank-remittance-1781261877513.csv
+│       │   │   └── bank-remittance-1781262017302.csv
+│       │   └── uploads
+│       │       ├── driver
+│       │       │   ├── CSV
+│       │       │   │   ├── 01f9bba8533ef12d9947befcda695887
+│       │       │   │   ├── 063ea73522e93537110862b592445b42
+│       │       │   │   ├── 0926ef270c5160643028660e5d987c58
+│       │       │   │   ├── 1ca05f51cfe5d75f4540b3b4050ba529
+│       │       │   │   ├── 2249518ab7a955a6988e8861ae24e07c
+│       │       │   │   ├── 29ec4ee3e699cbf12c9c162869882ffe
+│       │       │   │   ├── 3506785f4865ac083753b88c16b51a5a
+│       │       │   │   ├── 3bcf58e05140195c04bf134374e862c0
+│       │       │   │   ├── 64253561c449e27b32490aef3c297eec
+│       │       │   │   ├── 7cc5325a9bff72b34736ac04c512553a
+│       │       │   │   ├── 86614ed1d9624b1cc9e7cd0c4e618639
+│       │       │   │   ├── 91e3dd641937c39dd1e06cdd8a5ee3e1
+│       │       │   │   ├── a3d422404607c8ec7f552bfb5047fc8e
+│       │       │   │   ├── c374a8bb94c77cd9a7a34d705e77e576
+│       │       │   │   ├── d6ac68e695fff3906085b0d498dea70c
+│       │       │   │   ├── dcff7164d4345323e637a99c59be5fd2
+│       │       │   │   ├── dedee046837f8d8b9cd24e38e011d9af
+│       │       │   │   ├── e8878569152c14a9efd911a598019712
+│       │       │   │   ├── eeffe4c3d782c3b217a8c5e9beca3173
+│       │       │   │   └── f46e54e0846a81ebf3dc5dd838e655b2
+│       │       │   └── images
+│       │       │       ├── driver-1765865588317.jpg
+│       │       │       ├── driver-1765866612248.jpg
+│       │       │       ├── driver-1765879500032.jpg
+│       │       │       ├── driver-1765886974611.jpeg
+│       │       │       ├── driver-1766490001312.jpeg
+│       │       │       ├── driver-1766490012831.jpeg
+│       │       │       ├── driver-1766491185196.jpg
+│       │       │       ├── driver-1766491198404.jpg
+│       │       │       ├── driver-1766491384863.svg
+│       │       │       ├── driver-1766491393317.svg
+│       │       │       ├── driver-1766491400622.svg
+│       │       │       ├── driver-1766491625171.svg
+│       │       │       ├── driver-1766491815111.svg
+│       │       │       ├── driver-1766491826070.svg
+│       │       │       ├── driver-1766491953937.png
+│       │       │       ├── driver-1766492291828.svg
+│       │       │       ├── driver-1766492299029.svg
+│       │       │       ├── driver-1766492312338.svg
+│       │       │       ├── driver-1766555361681.jpeg
+│       │       │       ├── driver-1766651147179.jpeg
+│       │       │       ├── driver-1766661816843.webp
+│       │       │       ├── driver-1766726374606.jpg
+│       │       │       ├── driver-1768477526486.jpg
+│       │       │       ├── driver-1774597601589.jpeg
+│       │       │       ├── driver-1774597608423.jpeg
+│       │       │       ├── driver-1774598396196.svg
+│       │       │       ├── driver-1775462642845.jpeg
+│       │       │       └── driver-1779345238871.jpeg
+│       │       ├── jobs
+│       │       │   ├── 0f8da05580aa4e7bbbf5e201e8e3e10e
+│       │       │   ├── 181afdbf924fc0dcfbc2ca7611b60d73
+│       │       │   ├── 21df2a8932024f16b13366cabea87346
+│       │       │   ├── 3780bd7b476513b6d8802cddfd037fcd
+│       │       │   ├── 4dd2fe57cfc454d023f2c5e1c331a4a0
+│       │       │   ├── 56b959555d24cba9cea3bab2d2fd1d3a
+│       │       │   ├── 79d8df28335f56cf18740d344a9a1a3f
+│       │       │   ├── b8a1bbe8793502bdabd360c816c13ff5
+│       │       │   ├── c077caaf6c7ad49f1e043e3cab487dd9
+│       │       │   ├── d72e4f8907b1dfff348b44e04979fa25
+│       │       │   ├── da69d43b4f17f0198c713a10036a8791
+│       │       │   ├── de7cd6664e3b31ce62eed8f59fc2deab
+│       │       │   ├── e2e454dfb8e3df58de7c1853cea41d19
+│       │       │   └── ea756b9269e3a09d846ca40d2ea8038e
+│       │       └── userProfile
+│       │           ├── user-1766739218121.jpeg
+│       │           └── user-1773229322521.jpeg
+│       ├── routes
+│       │   ├── authRoutes.js
+│       │   ├── dashboardRoutes.js
+│       │   ├── driverRoutes.js
+│       │   ├── invoiceRoutes.js
+│       │   ├── jobRoutes.js
+│       │   ├── mainRoutes.js
+│       │   ├── selfOwnDriverRoutes
+│       │   │   ├── dashboardRoutes.js
+│       │   │   ├── driverRoutes.js
+│       │   │   ├── invoiceRoutes.js
+│       │   │   └── jobRoutes.js
+│       │   └── userRoutes.js
+│       ├── seeder
+│       │   └── seedAdmin.js
+│       ├── server.js
+│       ├── services
+│       │   ├── authService.js
+│       │   ├── dashboardService.js
+│       │   ├── driverService.js
+│       │   ├── invoiceService.js
+│       │   ├── jobService.js
+│       │   ├── selfownDriverServices
+│       │   │   ├── dashboardService.js
+│       │   │   ├── driverService.js
+│       │   │   ├── invoiceService.js
+│       │   │   └── jobService.js
+│       │   └── userService.js
+│       ├── src
+│       │   └── public
+│       │       └── invoices
+│       │           ├── invoice-69f1ae27e26b527c7499555f-34c2b841-b89b-47db-9037-e35855b85d46.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-3cf9d73c-cb09-4dd2-a890-740fd637a380.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-562e47a1-10a0-4aa4-966b-3b7bed3d9235.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-6d89f656-5375-4144-9a1c-4f5785c29cc5.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-707b4389-376b-4556-9e37-0f693a1364f2.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-95231eec-8489-4500-a747-7326c28e9d31.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-9e2f1c0b-685d-41a9-b2cd-a15023b2fa84.pdf
+│       │           ├── invoice-69f1ae27e26b527c7499555f-9f1085cc-9e45-42ad-a272-b572c32a72ce.pdf
+│       │           └── invoice-69f1ae27e26b527c7499555f-ec2264b0-e29f-4f05-82c4-7591e0fe38ab.pdf
+│       ├── utils
+│       │   ├── email.js
+│       │   ├── exportDriversCSV.js
+│       │   ├── exportDriversPDF.js
+│       │   ├── exportSelfOwnDriversPDF.js
+│       │   ├── generatebankRemittanceCsv.js
+│       │   ├── generateBankRemittancePdf.js
+│       │   ├── generateInvoiceCsv.js
+│       │   ├── generateInvoiceDetailedSummaryCSV.js
+│       │   ├── generateInvoiceDetailedSummaryPdf.js
+│       │   ├── generateInvoiceHTML.js
+│       │   ├── generateInvoiceSummaryCsv.js
+│       │   ├── generateInvoiceSummaryPdf.js
+│       │   ├── jwt.js
+│       │   ├── parseUserDate.js
+│       │   └── tokenGenerator.js
+│       └── workers
+│           ├── index.js
+│           ├── invoice
+│           │   ├── carryForward.worker.js
+│           │   ├── findPendingWeeks.js
+│           │   ├── invoiceFinancialCalculator.js
+│           │   ├── invoiceTargetCalculator.js
+│           │   ├── pass1.worker.js
+│           │   ├── pass2.worker.js
+│           │   ├── pass3.worker.js
+│           │   ├── remainingJob.selector.js
+│           │   ├── weeklyInvoice.cron.js
+│           │   ├── weeklyInvoice.selector.js
+│           │   └── weeklyInvoice.worker.js
+│           ├── job-import
+│           │   ├── jobImport.handler.js
+│           │   ├── jobImport.parser.js
+│           │   ├── jobImport.processor.js
+│           │   ├── jobImport.queue.js
+│           │   ├── jobImport.worker.js
+│           │   ├── selfJobImport.parser.js
+│           │   ├── selfJobImport.processor.js
+│           │   ├── selfJobImport.queue.js
+│           │   └── selfJobImport.worker.js
+│           └── selfInvoice
+│               ├── findPendingSelfWeek.js
+│               ├── selfCarryForward.service.js
+│               ├── selfInvoiceBatch.selector.js
+│               ├── selfInvoice.calculator.js
+│               ├── selfJob.selector.js
+│               ├── weeklySelfInvoice.cron.js
+│               └── Weeklyselfinvoice.worker.js
+└── uch-logistics-frontend
+    ├── eslint.config.mjs
+    ├── jsconfig.json
+    ├── next.config.mjs
+    ├── package.json
+    ├── package-lock.json
+    ├── postcss.config.mjs
+    ├── public
+    │   ├── file.svg
+    │   ├── globe.svg
+    │   ├── icons
+    │   │   ├── active-drivers.png
+    │   │   ├── total-jobs-listed.png
+    │   │   └── total-revenue.png
+    │   ├── img
+    │   │   ├── blue-shade2.png
+    │   │   ├── blue-shades.png
+    │   │   ├── dashbg.png
+    │   │   ├── header-img.png
+    │   │   ├── left.png
+    │   │   ├── login-bg.png
+    │   │   ├── logoi.png
+    │   │   ├── logo.png
+    │   │   ├── red-shade2.png
+    │   │   ├── red-shade.png
+    │   │   ├── right.png
+    │   │   ├── setting-img.png
+    │   │   ├── truck.png
+    │   │   └── user-img.png
+    │   ├── next.svg
+    │   ├── vercel.svg
+    │   └── window.svg
+    ├── README.md
+    └── src
+        ├── app
+        │   ├── dashboard
+        │   │   └── page.jsx
+        │   ├── driver-positions
+        │   │   └── page.jsx
+        │   ├── driver-profile-detail
+        │   │   └── page.jsx
+        │   ├── driver-profile-edit
+        │   │   └── page.jsx
+        │   ├── drivers
+        │   │   ├── add
+        │   │   │   └── page.jsx
+        │   │   ├── edit
+        │   │   │   └── [id]
+        │   │   │       └── page.jsx
+        │   │   ├── page.jsx
+        │   │   └── view
+        │   │       └── [id]
+        │   │           └── page.jsx
+        │   ├── edit-job
+        │   │   └── page.jsx
+        │   ├── favicon.ico
+        │   ├── forget-password
+        │   │   └── page.jsx
+        │   ├── globals.css
+        │   ├── invoices
+        │   │   └── page.jsx
+        │   ├── job-management
+        │   │   ├── add
+        │   │   │   └── page.jsx
+        │   │   ├── edit
+        │   │   │   └── [id]
+        │   │   │       └── page.jsx
+        │   │   └── page.jsx
+        │   ├── layout.js
+        │   ├── layoutWrapper.js
+        │   ├── login
+        │   │   └── page.jsx
+        │   ├── page.js
+        │   ├── self-own
+        │   │   ├── dashboard
+        │   │   │   └── page.jsx
+        │   │   ├── driver-positions
+        │   │   │   └── page.jsx
+        │   │   ├── drivers
+        │   │   │   ├── add
+        │   │   │   │   └── page.jsx
+        │   │   │   ├── edit
+        │   │   │   │   └── [id]
+        │   │   │   │       └── page.jsx
+        │   │   │   ├── page.jsx
+        │   │   │   └── view
+        │   │   │       └── [id]
+        │   │   │           └── page.jsx
+        │   │   ├── invoices
+        │   │   │   └── page.jsx
+        │   │   └── job-management
+        │   │       ├── add
+        │   │       │   └── page.jsx
+        │   │       ├── edit
+        │   │       │   └── [id]
+        │   │       │       └── page.jsx
+        │   │       └── page.jsx
+        │   └── settings
+        │       └── page.jsx
+        ├── components
+        │   ├── dashboard
+        │   │   ├── AddJob.jsx
+        │   │   ├── AddNewDriver.jsx
+        │   │   ├── Breadcrumb.jsx
+        │   │   ├── ConfirmModal.jsx
+        │   │   ├── DashBoard.jsx
+        │   │   ├── DateRangeModal.jsx
+        │   │   ├── DriverCarryForwardTable.jsx
+        │   │   ├── DriverPositionsPage.jsx
+        │   │   ├── DriverProfileDetail.jsx
+        │   │   ├── DriverProfileEdit.jsx
+        │   │   ├── DriverProfile.jsx
+        │   │   ├── EditJob.jsx
+        │   │   ├── ExportDriversModal.jsx
+        │   │   ├── ExportJobModal.jsx
+        │   │   ├── ImportDriversModal.jsx
+        │   │   ├── ImportJobModal.jsx
+        │   │   ├── InvoicePreviewModal.jsx
+        │   │   ├── Invoices.jsx
+        │   │   ├── JobManagemant.jsx
+        │   │   ├── Loader.jsx
+        │   │   ├── selfOwnDriver
+        │   │   │   ├── AddJob.jsx
+        │   │   │   ├── AddNewDriver.jsx
+        │   │   │   ├── ConfirmModal.jsx
+        │   │   │   ├── DashBoard.jsx
+        │   │   │   ├── DriverPositionsPage.jsx
+        │   │   │   ├── DriverProfile copy.jsx
+        │   │   │   ├── DriverProfileDetail.jsx
+        │   │   │   ├── DriverProfileEdit.jsx
+        │   │   │   ├── DriverProfile.jsx
+        │   │   │   ├── EditJob.jsx
+        │   │   │   ├── ExportDriversModal.jsx
+        │   │   │   ├── ImportDriversModal.jsx
+        │   │   │   ├── ImportJobModal.jsx
+        │   │   │   ├── Invoices.jsx
+        │   │   │   ├── JobManagemant.jsx
+        │   │   │   └── page.jsx
+        │   │   └── Setting.jsx
+        │   ├── form
+        │   │   ├── Input.jsx
+        │   │   └── Select.jsx
+        │   └── layout
+        │       ├── CustomDropdown.jsx
+        │       ├── CustomSelect.jsx
+        │       ├── Footer.jsx
+        │       ├── Header.jsx
+        │       ├── PaidCustomDropdown.jsx
+        │       └── Sidebar.jsx
+        ├── lib
+        │   └── api
+        │       ├── auth.api.js
+        │       ├── axios.js
+        │       ├── dashboard.api.js
+        │       ├── driver.api.js
+        │       ├── invoice.api.js
+        │       ├── job.api.js
+        │       ├── profile.api.js
+        │       └── self-own
+        │           ├── dashboard.api.js
+        │           ├── driver.api.js
+        │           ├── invoice.api.js
+        │           └── job.api.js
+        ├── middleware.js
+        ├── redux
+        │   ├── feature
+        │   │   └── searchSlice.js
+        │   ├── store.js
+        │   └── StoreProvider.js
+        ├── store
+        │   └── useUserStore.js
+        └── utils
+            └── helpers.js
+
+83 directories, 442 files

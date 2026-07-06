@@ -1,0 +1,549 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String    @id @default(auto()) @map("_id") @db.ObjectId
+  username               String?
+  firstname              String?
+  lastname               String?
+  phone_no               String?
+  email                  String?   @unique
+  password               String?
+  user_type              String?
+  image                  String?
+  reset_password_token   String?
+  reset_password_expires DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+enum ShiftType {
+  DAY
+  NIGHT
+}
+
+model Driver {
+  id                    String  @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String? @unique
+  sage_name             String?
+  call_sign             String?
+  per_hour_rate         Float?
+  total_hours           Float?
+  weekly_fixed_rate     Float?
+  total_days            Int?
+  bank_account_no       String?
+  payment_reference     String?
+  iban_no               String?
+  address_details       String?
+  phone_number          String?
+  email                 String?
+  status                String?
+  zip_code              String?
+  payroll_id            String?
+  image                 String?
+  bank_user_name        String?
+  vat_percent           Float?
+  admin_fee             Float?
+  vehicle_vat_percent   Float?
+  vehicle_hire_charge   Float?
+  insurance_vat_percent Float?
+  insurance_charge      Float?
+  fuel_vat_percent      Float?
+  fuel_charge           Float?
+
+  carry_forward_admin_fee         Float? @default(0)
+  carry_forward_admin_vat_percent Float? @default(0)
+
+  carry_forward_vehicle_hire_charge Float? @default(0)
+  carry_forward_vehicle_vat_percent Float? @default(0)
+
+  carry_forward_insurance_charge      Float? @default(0)
+  carry_forward_insurance_vat_percent Float? @default(0)
+
+  carry_forward_fuel_charge      Float? @default(0)
+  carry_forward_fuel_vat_percent Float? @default(0)
+
+  shift_type ShiftType @default(DAY)
+
+  jobs     Job[]
+  invoices Invoice[]
+
+  driver_history DriverPositionHistory[]
+
+  // Position relation — stores the ObjectId reference
+  driver_position_id String?         @db.ObjectId
+  driver_position    DriverPosition? @relation(fields: [driver_position_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model DriverPosition {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  slug       String @unique
+  label      String
+  max_weight Float?
+
+  drivers Driver[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model DriverPositionHistory {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  driver_id String @db.ObjectId
+  driver    Driver @relation(fields: [driver_id], references: [id])
+
+  old_position_id    String? @db.ObjectId
+  old_position_label String?
+  new_position_id    String? @db.ObjectId
+  new_position_label String?
+
+  created_at DateTime @default(now())
+}
+
+model Job {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  docket_no    String?   @unique
+  date_time    DateTime?
+  tariff       String?
+  journey      String?
+  driver_total Float?
+
+  driver_id String? @db.ObjectId
+  driver    Driver? @relation(fields: [driver_id], references: [id])
+
+  call_sign String?
+
+  is_invoiced Boolean @default(false)
+
+  invoice_id String?  @db.ObjectId
+  invoice    Invoice? @relation("InvoiceJobs", fields: [invoice_id], references: [id])
+
+  weight Float?
+
+  is_carry_forward_processed Boolean @default(false)
+
+  // Add relation back from InvoiceJob
+  invoiceJobs InvoiceJob[]
+
+  job_history JobChangeHistory[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model JobImportLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  docket_no  String?
+  reason     String
+  row_data   Json?
+  created_at DateTime @default(now())
+}
+
+enum InvoiceStatus {
+  DRAFT
+  FINAL
+}
+
+model Invoice {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  driver_id String  @db.ObjectId
+  driver    Driver? @relation(fields: [driver_id], references: [id])
+
+  start_date DateTime
+  end_date   DateTime
+
+  docket_total Float
+
+  admin_fee            Float?        @default(0)
+  vehicle_hire_charges Float?        @default(0)
+  insurance_charge     Float?        @default(0)
+  fuel_charge          Float?        @default(0)
+  additional_charges   Float?        @default(0)
+  vat                  Float?
+  status               InvoiceStatus @default(DRAFT)
+
+  total_number_of_dockets Int?
+
+  old_weekly_fixed_rate Float?
+  old_total_days        Int?
+  old_per_hour_rate     Float?
+  old_total_hours       Float?
+  net_amount            Float?
+
+  total_deductions Float
+  final_total      Float
+
+  carried_forward_total   Float? @default(0)
+  current_week_deductions Float? @default(0)
+
+  carry_forward_admin_fee         Float? @default(0)
+  carry_forward_admin_vat_percent Float? @default(0)
+
+  carry_forward_vehicle_hire_charge Float? @default(0)
+  carry_forward_vehicle_vat_percent Float? @default(0)
+
+  carry_forward_insurance_charge      Float? @default(0)
+  carry_forward_insurance_vat_percent Float? @default(0)
+
+  carry_forward_fuel_charge      Float? @default(0)
+  carry_forward_fuel_vat_percent Float? @default(0)
+
+  is_paid Boolean @default(false)
+  pdf_url String?
+
+  // Add relation back to Job
+  jobs Job[] @relation("InvoiceJobs")
+
+  // Add relation to InvoiceJob
+  invoiceJobs InvoiceJob[]
+
+  batch_id String?       @db.ObjectId
+  batch    InvoiceBatch? @relation(fields: [batch_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+enum CarryForwardStatus {
+  PENDING
+  APPLIED
+}
+
+model InvoiceJob {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  invoice_id String  @db.ObjectId
+  invoice    Invoice @relation(fields: [invoice_id], references: [id])
+
+  job_id String @db.ObjectId
+  job    Job    @relation(fields: [job_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+model SystemState {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  key        String   @unique
+  value      DateTime
+  updated_at DateTime @updatedAt
+}
+
+enum JobChangeField {
+  DRIVER_ID
+  CALL_SIGN
+  DRIVER_TOTAL
+}
+
+model JobChangeHistory {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  job_id String @db.ObjectId
+  job    Job    @relation(fields: [job_id], references: [id])
+
+  field JobChangeField
+
+  old_value Json?
+  new_value Json?
+
+  changed_at DateTime @default(now())
+
+  created_at DateTime @default(now())
+}
+
+model InvoiceBatch {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  batch_number Int
+  batch_code   String
+
+  from_date DateTime
+  to_date   DateTime
+
+  year Int
+  week Int
+
+  invoices Invoice[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([year, week])
+  @@unique([batch_code])
+}
+
+model SelfDriver {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String? @unique
+  sage_name String?
+  call_sign String?
+
+  bank_account_no   String?
+  payment_reference String?
+  iban_no           String?
+  address_details   String?
+  phone_number      String?
+  email             String?
+  status            String?
+  zip_code          String?
+  payroll_id        String?
+  image             String?
+  bank_user_name    String?
+  vat_number        Int?
+
+  manual_dockets Json?
+
+  docket_total_vat_percent Float?
+  vat_percent              Float?
+  admin_fee                Float?
+  vehicle_vat_percent      Float?
+  vehicle_hire_charge      Float?
+  insurance_vat_percent    Float?
+  insurance_charge         Float?
+  fuel_vat_percent         Float?
+  fuel_charge              Float?
+  additional_charges_1     Float?
+  additional_charges_2     Float?
+  additional_charges_3     Float?
+
+  additional_charges_vat_1_percent Float?
+  additional_charges_vat_2_percent Float?
+  additional_charges_vat_3_percent Float?
+
+  carry_forward_admin_fee         Float? @default(0)
+  carry_forward_admin_vat_percent Float? @default(0)
+
+  carry_forward_vehicle_hire_charge Float? @default(0)
+  carry_forward_vehicle_vat_percent Float? @default(0)
+
+  carry_forward_insurance_charge      Float? @default(0)
+  carry_forward_insurance_vat_percent Float? @default(0)
+
+  carry_forward_fuel_charge      Float? @default(0)
+  carry_forward_fuel_vat_percent Float? @default(0)
+
+  carry_forward_additional_charge_1             Float? @default(0)
+  carry_forward_additional_charge_1_vat_percent Float? @default(0)
+
+  carry_forward_additional_charge_2             Float? @default(0)
+  carry_forward_additional_charge_2_vat_percent Float? @default(0)
+
+  carry_forward_additional_charge_3             Float? @default(0)
+  carry_forward_additional_charge_3_vat_percent Float? @default(0)
+
+  shift_type String?
+
+  jobs     SelfJob[]
+  invoices SelfInvoice[]
+
+  driver_history SelfDriverPositionHistory[]
+
+  driver_position_id String?             @db.ObjectId
+  driver_position    SelfDriverPosition? @relation(fields: [driver_position_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model SelfDriverPosition {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  slug       String @unique
+  label      String
+  max_weight Float?
+
+  drivers SelfDriver[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model SelfDriverPositionHistory {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  driver_id String     @db.ObjectId
+  driver    SelfDriver @relation(fields: [driver_id], references: [id])
+
+  old_position_id    String? @db.ObjectId
+  old_position_label String?
+  new_position_id    String? @db.ObjectId
+  new_position_label String?
+
+  created_at DateTime @default(now())
+}
+
+model SelfJob {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  docket_no    String?   @unique
+  date_time    DateTime?
+  tariff       String?
+  journey      String?
+  driver_total Float?
+
+  driver_id String?     @db.ObjectId
+  driver    SelfDriver? @relation(fields: [driver_id], references: [id])
+
+  call_sign String?
+
+  is_invoiced Boolean @default(false)
+
+  invoice_id String?      @db.ObjectId
+  invoice    SelfInvoice? @relation("SelfInvoiceJobs", fields: [invoice_id], references: [id])
+
+  weight Float?
+
+  invoiceJobs SelfInvoiceJob[]
+
+  job_history SelfJobChangeHistory[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model SelfJobImportLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  docket_no  String?
+  reason     String
+  row_data   Json?
+  created_at DateTime @default(now())
+}
+
+model SelfInvoice {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  driver_id String      @db.ObjectId
+  driver    SelfDriver? @relation(fields: [driver_id], references: [id])
+
+  site_type String?
+
+  start_date DateTime
+  end_date   DateTime
+
+  docket_total Float
+
+  admin_fee            Float? @default(0)
+  vehicle_hire_charges Float? @default(0)
+  insurance_charge     Float? @default(0)
+  fuel_charge          Float? @default(0)
+  additional_charges   Float? @default(0)
+  vat                  Float?
+
+  status InvoiceStatus @default(DRAFT)
+
+  total_number_of_dockets Int?
+
+  net_amount       Float?
+  total_deductions Float
+  final_total      Float
+
+  is_paid Boolean @default(false)
+  pdf_url String?
+
+  jobs SelfJob[] @relation("SelfInvoiceJobs")
+
+  invoiceJobs SelfInvoiceJob[]
+
+  batch_id String?           @db.ObjectId
+  batch    SelfInvoiceBatch? @relation(fields: [batch_id], references: [id])
+
+  carry_forward_vat_total Float? @default(0)
+
+  docket_total_vat Float? @default(0)
+
+  manual_driver_total Float? @default(0)
+
+  final_tax_deduction Float? @default(0)
+
+  carry_forward_admin_fee         Float? @default(0)
+  carry_forward_admin_vat_percent Float? @default(0)
+
+  carry_forward_vehicle_hire_charge Float? @default(0)
+  carry_forward_vehicle_vat_percent Float? @default(0)
+
+  carry_forward_insurance_charge      Float? @default(0)
+  carry_forward_insurance_vat_percent Float? @default(0)
+
+  carry_forward_fuel_charge      Float? @default(0)
+  carry_forward_fuel_vat_percent Float? @default(0)
+
+  created_at DateTime @default(now())
+}
+
+model SelfInvoiceJob {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  invoice_id String      @db.ObjectId
+  invoice    SelfInvoice @relation(fields: [invoice_id], references: [id])
+
+  job_id String  @db.ObjectId
+  job    SelfJob @relation(fields: [job_id], references: [id])
+
+  created_at DateTime @default(now())
+}
+
+model SelfJobChangeHistory {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  job_id String  @db.ObjectId
+  job    SelfJob @relation(fields: [job_id], references: [id])
+
+  field JobChangeField
+
+  old_value Json?
+  new_value Json?
+
+  changed_at DateTime @default(now())
+  created_at DateTime @default(now())
+}
+
+model SelfInvoiceBatch {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  batch_number Int
+  batch_code   String
+
+  site_type String?
+
+  from_date DateTime
+  to_date   DateTime
+
+  year Int
+  week Int
+
+  invoices SelfInvoice[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([year, week])
+  @@unique([batch_code])
+}
+
+model SelfSystemState {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  key        String   @unique
+  value      DateTime
+  updated_at DateTime @updatedAt
+}
+
+model CombinedInvoiceBatch {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  batch_number Int
+  batch_code   String
+
+  from_date DateTime
+  to_date   DateTime
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([batch_code])
+}

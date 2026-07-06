@@ -1,0 +1,13 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
+/src/public/uploads/driver/images
+/src/public/uploads/jobs
+/src/public/invoices/
+/src/public/remittance/
+/src/public/remittance/*
+/src/public/drivers/*
+/src/public/uploads/driver/CSV
+/src/public/uploads/driver/images
