@@ -103,6 +103,61 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
       orderBy: { date_time: "asc" },
     });
 
+    if (driver.call_sign === "Scutaru") {
+      console.log(
+        "[Scutaru debug] maxWeight:",
+        maxWeight,
+        "start:",
+        start,
+        "end:",
+        end,
+      );
+
+      const baseWhere = {
+        driver_id: null,
+        call_sign: null,
+        is_invoiced: false,
+        date_time: { gte: start, lte: end },
+      };
+
+      const noWeightFilter = await prisma.job.count({ where: baseWhere });
+      const withWeightUpper = await prisma.job.count({
+        where: { ...baseWhere, weight: { gte: 0, lte: maxWeight } },
+      });
+      const withDriverTotal = await prisma.job.count({
+        where: { ...baseWhere, driver_total: { gt: 0 } },
+      });
+      const fullFilter = await prisma.job.count({
+        where: {
+          ...baseWhere,
+          weight: { gte: 0, lte: maxWeight },
+          driver_total: { gt: 0 },
+        },
+      });
+
+      console.log("[Scutaru debug] no weight/total filter:", noWeightFilter);
+      console.log("[Scutaru debug] + weight<=maxWeight:", withWeightUpper);
+      console.log("[Scutaru debug] + driver_total>0 only:", withDriverTotal);
+      console.log(
+        "[Scutaru debug] full filter (should match poolJobs.length):",
+        fullFilter,
+      );
+
+      // Peek at jobs that pass the base filter but fail on weight/driver_total,
+      // to see what's actually disqualifying them
+      const candidates = await prisma.job.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          weight: true,
+          driver_total: true,
+          date_time: true,
+          call_sign: true,
+        },
+        take: 20,
+      });
+      console.log("[Scutaru debug] sample candidates:", candidates);
+    }
     console.log(
       `[PASS2] Driver ${driver.call_sign} — pool jobs available: ${poolJobs.length}`,
     );
@@ -196,15 +251,20 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
           old_per_hour_rate: driver.per_hour_rate,
           old_total_hours: driver.total_hours,
 
-
-          carry_forward_admin_fee: driver.carry_forward_admin_fee || 0 ,
-          carry_forward_admin_vat_percent: driver.carry_forward_admin_vat_percent || 0 ,
-          carry_forward_vehicle_hire_charge: driver.carry_forward_vehicle_hire_charge || 0 ,
-          carry_forward_vehicle_vat_percent: driver.carry_forward_vehicle_vat_percent || 0 ,
-          carry_forward_insurance_charge: driver.carry_forward_insurance_charge || 0 ,
-          carry_forward_insurance_vat_percent: driver.carry_forward_insurance_vat_percent || 0 ,
+          carry_forward_admin_fee: driver.carry_forward_admin_fee || 0,
+          carry_forward_admin_vat_percent:
+            driver.carry_forward_admin_vat_percent || 0,
+          carry_forward_vehicle_hire_charge:
+            driver.carry_forward_vehicle_hire_charge || 0,
+          carry_forward_vehicle_vat_percent:
+            driver.carry_forward_vehicle_vat_percent || 0,
+          carry_forward_insurance_charge:
+            driver.carry_forward_insurance_charge || 0,
+          carry_forward_insurance_vat_percent:
+            driver.carry_forward_insurance_vat_percent || 0,
           carry_forward_fuel_charge: driver.carry_forward_fuel_charge || 0,
-          carry_forward_fuel_vat_percent: driver.carry_forward_fuel_vat_percent || 0,
+          carry_forward_fuel_vat_percent:
+            driver.carry_forward_fuel_vat_percent || 0,
         },
       });
 
