@@ -199,16 +199,6 @@ export async function generatePdf(req, res) {
 
     const browser = await initBrowser();
 
-//    const browser = await puppeteer.launch({
-//   headless: true,
-//   args: [
-//     "--no-sandbox",
-//     "--disable-setuid-sandbox",
-//     "--disable-dev-shm-usage",
-//   ],
-// });
-
-
     page = await browser.newPage();
 
     await page.setViewport({
