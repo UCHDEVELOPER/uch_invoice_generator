@@ -1,6 +1,9 @@
 import puppeteer from "puppeteer";
 import path from "path";
 import fs from "fs";
+import { formatInTimeZone } from "date-fns-tz";
+
+const TIMEZONE = "Europe/London";
 
 export const generateInvoiceSummaryPdfFile = async (data) => {
   const { rows, summary, start_date, end_date, batch } = data;
@@ -10,14 +13,15 @@ export const generateInvoiceSummaryPdfFile = async (data) => {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+
+  return formatInTimeZone(
+    new Date(dateString),
+    TIMEZONE,
+    "dd/MM/yyyy"
+  );
+};
 
   const formattedStartDate = formatDate(start_date);
   const formattedEndDate = formatDate(end_date);
@@ -188,7 +192,7 @@ export const generateInvoiceSummaryPdfFile = async (data) => {
           <td class="left">${r.driverName}</td>
           <td class="center">${r.invoiceNumber}</td>
           <td class="center">${r.jobs}</td>
-          <td class="right">${r.debtAmount.toFixed(2)}</td>
+          <td class="right">${(r.debtAmount + r.taxAmount).toFixed(2)}</td>
           <td class="right">${r.taxAmount.toFixed(2)}</td>
           <td class="right">${r.total.toFixed(2)}</td>
         </tr>

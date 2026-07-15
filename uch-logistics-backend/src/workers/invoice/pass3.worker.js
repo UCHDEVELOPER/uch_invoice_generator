@@ -84,8 +84,6 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
     // ── Fetch unassigned pool jobs ────────────────────────────────────────
     const poolJobs = await prisma.job.findMany({
       where: {
-        driver_id: null,
-        call_sign: null,
         is_invoiced: false,
         date_time: { gte: start, lte: end },
         weight: { gte: 0, lte: maxWeight },

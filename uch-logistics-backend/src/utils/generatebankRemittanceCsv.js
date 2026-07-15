@@ -14,6 +14,7 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
     "Type",
     "Driver",
     "Account",
+    "Sort Code",
     "Extra Reference",
     "Date",
     "Invoice Number",
@@ -21,7 +22,6 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
     "Net Amount",
     "Tax Code",
     "VAT",
-    "Sort Code",
   ];
 
   const formatDate = (date) => {
@@ -45,6 +45,7 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
       "PI",
       invoice.driver?.bank_user_name || invoice.driver?.name || "",
       `\t${invoice.driver?.bank_account_no || ""}`,
+      `\t${invoice.driver?.iban_no || ""}`,
       "",
       formatDate(invoice.created_at),
       invoice.id.slice(-6).toUpperCase(),
@@ -52,7 +53,6 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
       netAmount.toFixed(2),
       "T9",
       invoice.total_deductions.toFixed(2),
-      `\t${invoice.driver?.iban_no || ""}`,
     ];
   });
 

@@ -1307,9 +1307,16 @@ export const generateInvoiceSummaryService = async ({
       driver: true,
       jobs: true,
     },
-    orderBy: {
-      start_date: "asc",
-    },
+    orderBy: [
+      {
+        start_date: "asc",
+      },
+      {
+        driver: {
+          name: "asc",
+        },
+      },
+    ],
   });
 
   if (invoices.length === 0) {
@@ -1403,8 +1410,9 @@ const getOrCreateInvoiceBatch = async (prisma, fromDate, toDate) => {
     orderBy: { batch_number: "desc" },
   });
 
-  const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
-  const batchCode = `${String(nextBatchNumber).padStart(4, "0")}`;
+  const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 400001;
+  const batchCode = String(nextBatchNumber).padStart(6, "0");
+
   console.log(
     fromDate,
     "fromDate",
@@ -1462,9 +1470,16 @@ export async function generateBankRemittanceService({
     include: {
       driver: true,
     },
-    orderBy: {
-      start_date: "asc",
-    },
+    orderBy: [
+      {
+        start_date: "asc",
+      },
+      {
+        driver: {
+          name: "asc",
+        },
+      },
+    ],
   });
 
   if (invoices.length === 0) {
@@ -1536,9 +1551,16 @@ export async function generateDetailedInvoiceSummaryService(
         driver: true,
         jobs: true,
       },
-      orderBy: {
+    orderBy: [
+      {
         start_date: "asc",
       },
+      {
+        driver: {
+          name: "asc",
+        },
+      },
+    ],
     });
 
     if (invoices.length === 0) {
@@ -1557,7 +1579,7 @@ export async function generateDetailedInvoiceSummaryService(
       },
     });
 
-    const batch = await prisma.selfInvoiceBatch.findUnique({
+    const batch = await prisma.InvoiceBatch.findUnique({
       where: {
         id: invoiceBatch.id,
       },
@@ -2000,9 +2022,16 @@ async function fetchSelfInvoices(start, end) {
     include: {
       driver: true,
     },
-    orderBy: {
-      start_date: "asc",
-    },
+    orderBy: [
+      {
+        start_date: "asc",
+      },
+      {
+        driver: {
+          name: "asc",
+        },
+      },
+    ],
   });
 }
 export async function generateCollectiveBankRemittanceService({
@@ -2089,9 +2118,9 @@ export const getOrCreateCombinedInvoiceBatch = async (
     },
   });
 
-  const nextNumber = (lastBatch?.batch_number || 1000) + 1;
+  const nextNumber = lastBatch ? lastBatch.batch_number + 1 : 400001;
 
-  const batchCode = `${String(nextNumber).padStart(4, "0")}`;
+  const batchCode = String(nextNumber).padStart(6, "0");
 
   return prisma.combinedInvoiceBatch.create({
     data: {

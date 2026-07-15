@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs";
+import { formatInTimeZone } from "date-fns-tz";
 
+const TIMEZONE = "Europe/London";
 const escapeCsv = (value) => {
   const str = value === null || value === undefined ? "" : String(value);
   if (str.includes(",") || str.includes('"') || str.includes("\n")) {
@@ -11,13 +13,13 @@ const escapeCsv = (value) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
 
+  return formatInTimeZone(
+    new Date(dateString),
+    TIMEZONE,
+    "dd/MM/yyyy"
+  );
+};
 export const generateInvoiceSummaryCSVFile = async (data) => {
   const { rows, summary, start_date, end_date, batch } = data;
 
@@ -54,7 +56,7 @@ export const generateInvoiceSummaryCSVFile = async (data) => {
     r.driverName,
     r.invoiceNumber,
     r.jobs,
-    r.debtAmount.toFixed(2),
+    (r.debtAmount + r.taxAmount).toFixed(2),
     r.taxAmount.toFixed(2),
     r.total.toFixed(2),
   ]);

@@ -172,6 +172,7 @@ const formatDate = (date) => {
         <th class="col-type   center">Type</th>
         <th class="col-driver  left">Driver</th>
         <th class="col-account center">Account</th>
+        <th class="col-sort   center">Sort Code</th>
         <th class="col-extra-ref center">Extra Ref</th>
         <th class="col-date   center">Date</th>
         <th class="col-invoice center">Invoice No.</th>
@@ -179,7 +180,6 @@ const formatDate = (date) => {
         <th class="col-net    right">Net Amount</th>
         <th class="col-tax-code center">Tax Code</th>
         <th class="col-vat    right">VAT</th>
-        <th class="col-sort   center">Sort Code</th>
       </tr>
     </thead>
     <tbody>
@@ -190,6 +190,7 @@ const formatDate = (date) => {
           <td class="col-type    center">${row.type}</td>
           <td class="col-driver  left">${row.driver}</td>
           <td class="col-account center">${row.account}</td>
+          <td class="col-sort    center">${row.sortCode}</td>
           <td class="col-extra-ref center">${row.extraReference}</td>
           <td class="col-date    center">${row.date}</td>
           <td class="col-invoice center">${row.invoiceNumber}</td>
@@ -197,7 +198,6 @@ const formatDate = (date) => {
           <td class="col-net     right">${row.netAmount}</td>
           <td class="col-tax-code center">${row.taxCode}</td>
           <td class="col-vat     right">${row.vat}</td>
-          <td class="col-sort    center">${row.sortCode}</td>
         </tr>
       `,
         )

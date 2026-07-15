@@ -623,7 +623,7 @@ export const transformInvoiceData = (rawData) => {
   return result;
 };
 
-const DOCKETS_PER_PAGE = 35;
+const DOCKETS_PER_PAGE = 45;
 
 const paginateDockets = (dockets) => {
   if (dockets.length === 0) return [[]];
@@ -1040,7 +1040,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
             border-bottom: 1px solid black;
           "
         >
-          <strong style="flex-basis: 10%; text-align: right; padding-top: 10px;">Total:</strong>
+          <strong style="flex-basis: 95%; text-align: right; padding-top: 10px;">Total:</strong>
           <strong style="flex-basis: 10%; text-align: center; padding-top: 10px;">${formatCurrency(
             totals.grandTotal,
           )}</strong>
