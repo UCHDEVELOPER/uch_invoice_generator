@@ -19,6 +19,10 @@ import {
 
 import { processCarryForwardForSkippedDrivers } from "./selfCarryForward.service.js";
 
+import { getGeneratedId } from "../../utils/getGeneratedId.js";
+
+
+
 /**
  * GENERATE SIMPLE SEQUENTIAL BATCH CODE
  *
@@ -151,6 +155,9 @@ export async function runWeeklySelfInvoiceBatch() {
           manualDockets,
         });
 
+        const nextId = await getGeneratedId();
+
+
         /**
          * TRANSACTION — create invoice + links + reset carry-forward
          */
@@ -160,6 +167,7 @@ export async function runWeeklySelfInvoiceBatch() {
            */
           const createdInvoice = await tx.selfInvoice.create({
             data: {
+              generated_id: nextId,
               driver_id: driver.id,
               site_type: driver.shift_type || "",
               start_date: from,

@@ -11,6 +11,9 @@ import { prisma } from "../../config/prismaClient.js";
 import { selectJobsForRemainingAmount } from "./remainingJob.selector.js";
 import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
+import { getGeneratedId } from "../../utils/getGeneratedId.js";
+
+
 
 async function fetchPass3Drivers() {
   return prisma.driver.findMany({
@@ -120,11 +123,14 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
     const selectedJobIds = selectedJobs.map((j) => j.id);
 
     const financials = calculateInvoiceFinancials(driver, total);
+    
+    const nextId = await getGeneratedId();
 
     await prisma.$transaction(async (tx) => {
       // Create DRAFT invoice
       const invoice = await tx.invoice.create({
         data: {
+          generated_id: nextId,
           driver_id: driver.id,
           start_date: start,
           end_date: end,

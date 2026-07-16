@@ -16,6 +16,8 @@ import { prisma } from "../../config/prismaClient.js";
 import { selectJobsWithinTolerance } from "./weeklyInvoice.selector.js";
 import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
+import { getGeneratedId } from "../../utils/getGeneratedId.js";
+
 
 async function fetchPass1Drivers() {
   return prisma.driver.findMany({
@@ -167,6 +169,8 @@ export async function runPass1({ start, end }) {
     // Release unselected valid jobs to pool
     const unselectedJobs = validJobs.filter((j) => !selectedJobIds.has(j.id));
 
+    const nextId = await getGeneratedId();
+
     await prisma.$transaction(async (tx) => {
       // Release unselected jobs to pool
       if (unselectedJobs.length) {
@@ -197,6 +201,7 @@ export async function runPass1({ start, end }) {
       // Create DRAFT invoice
       const invoice = await tx.invoice.create({
         data: {
+          generated_id: nextId,
           driver_id: driver.id,
           start_date: start,
           end_date: end,

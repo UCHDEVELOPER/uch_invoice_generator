@@ -15,6 +15,8 @@ import { selectJobsWithinTolerance } from "./weeklyInvoice.selector.js";
 import { selectJobsForRemainingAmount } from "./remainingJob.selector.js";
 import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
+import { getGeneratedId } from "../../utils/getGeneratedId.js";
+
 
 async function fetchPass2Drivers() {
   return prisma.driver.findMany({
@@ -227,9 +229,12 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
 
       const financials = calculateInvoiceFinancials(driver, finalTotal);
 
+      const nextId = await getGeneratedId();
+      
       // Create DRAFT invoice
       const invoice = await tx.invoice.create({
         data: {
+          generated_id: nextId,
           driver_id: driver.id,
           start_date: start,
           end_date: end,

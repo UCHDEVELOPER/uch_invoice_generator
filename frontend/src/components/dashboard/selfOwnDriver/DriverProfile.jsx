@@ -297,7 +297,8 @@ function DriverProfilesPage() {
               drivers.map((driver, index) => (
                 <tr key={driver.id} className="bg-white">
                   <td className="px-[20px] py-[20px] border-y border-[#22358114] border-l rounded-l-[15px] w-[100px]">
-                    {(currentPage - 1) * limit + index + 1}
+                    {/* {(currentPage - 1) * limit + index + 1} */}
+                    {driver.generated_id}
                   </td>
                   <td className="px-[20px] py-[20px] 2xl:text-[18px] border-y border-[#22358114] whitespace-nowrap">
                     {driver.name}

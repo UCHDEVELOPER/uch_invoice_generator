@@ -13,6 +13,7 @@ import {
   normalizeDateRange,
   parseDDMMYYYY,
 } from "../../utils/parseUserDate.js";
+import { getGeneratedId } from "../../utils/getGeneratedId.js";
 
 const TIMEZONE = "Europe/London";
 
@@ -334,8 +335,11 @@ export async function generateWeeklyInvoice(payload) {
     const final_total = net_amount - total_deductions;
     const total_days_in_invoice = countUniqueJobDays(allJobs);
 
+    const nextId = await getGeneratedId();
+
     const invoice = await prisma.selfInvoice.create({
       data: {
+        generated_id: nextId,
         driver: { connect: { id: driverId } },
         start_date: startDt,
         end_date: endDt,
@@ -418,6 +422,7 @@ export async function generateWeeklyInvoice(payload) {
   // ------------------ Create invoice ------------------
   const invoice = await prisma.selfInvoice.create({
     data: {
+      generated_id: nextId,
       driver: { connect: { id: driverId } },
       start_date: startDt,
       end_date: endDt,
@@ -943,8 +948,8 @@ const getOrCreateInvoiceBatch = async (prisma, fromDate, toDate) => {
     orderBy: { batch_number: "desc" },
   });
 
-const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 400001;
-const batchCode = String(nextBatchNumber).padStart(6, "0");
+const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
+const batchCode = String(nextBatchNumber).padStart(4, "0");
 
   return prisma.selfInvoiceBatch.create({
     data: {

@@ -156,6 +156,7 @@ enum InvoiceStatus {
 
 model Invoice {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  generated_id Int     @unique
   driver_id String  @db.ObjectId
   driver    Driver? @relation(fields: [driver_id], references: [id])
 
@@ -417,7 +418,7 @@ model SelfJobImportLog {
 
 model SelfInvoice {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-
+  generated_id Int     @unique
   driver_id String      @db.ObjectId
   driver    SelfDriver? @relation(fields: [driver_id], references: [id])
 

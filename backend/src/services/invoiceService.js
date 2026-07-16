@@ -12,6 +12,7 @@ import {
   normalizeDateRange,
   parseDDMMYYYY,
 } from "../utils/parseUserDate.js";
+import { getGeneratedId } from "../utils/getGeneratedId.js";
 import { calculateInvoiceFinancials } from "../workers/invoice/invoiceFinancialCalculator.js";
 import { calculateWeeklyTarget } from "../workers/invoice/invoiceTargetCalculator.js";
 import { selectJobsWithinTolerance } from "../workers/invoice/weeklyInvoice.selector.js";
@@ -309,6 +310,13 @@ export async function generateWeeklyInvoice(payload) {
   const totalHours = driver.total_hours ?? 40;
   let weeklyTarget = weeklyFixed > 0 ? weeklyFixed : perHour * totalHours;
 
+  const nextId = await getGeneratedId();
+
+  console.log('===================================');
+  console.log(nextId);
+  console.log('===================================');
+
+
   if (!weeklyTarget || weeklyTarget === 0) {
     // No target configured - include all available jobs
     const allJobs = [...leftoverJobs, ...currentWeekJobs];
@@ -338,6 +346,7 @@ export async function generateWeeklyInvoice(payload) {
 
     const invoice = await prisma.invoice.create({
       data: {
+        generated_id: nextId,
         driver: { connect: { id: driverId } },
         start_date: startDt,
         end_date: endDt,
@@ -420,6 +429,7 @@ export async function generateWeeklyInvoice(payload) {
   // ------------------ Create invoice ------------------
   const invoice = await prisma.invoice.create({
     data: {
+      generated_id: nextId,
       driver: { connect: { id: driverId } },
       start_date: startDt,
       end_date: endDt,
@@ -1410,8 +1420,8 @@ const getOrCreateInvoiceBatch = async (prisma, fromDate, toDate) => {
     orderBy: { batch_number: "desc" },
   });
 
-  const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 400001;
-  const batchCode = String(nextBatchNumber).padStart(6, "0");
+  const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
+  const batchCode = String(nextBatchNumber).padStart(4, "0");
 
   console.log(
     fromDate,
@@ -2118,9 +2128,9 @@ export const getOrCreateCombinedInvoiceBatch = async (
     },
   });
 
-  const nextNumber = lastBatch ? lastBatch.batch_number + 1 : 400001;
+  const nextNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
 
-  const batchCode = String(nextNumber).padStart(6, "0");
+  const batchCode = String(nextNumber).padStart(4, "0");
 
   return prisma.combinedInvoiceBatch.create({
     data: {

@@ -1284,7 +1284,8 @@ function Invoices() {
                       />
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] w-[100px] text-center">
-                      {(currentPage - 1) * limit + index + 1}
+                      {/* {(currentPage - 1) * limit + index + 1} */}
+                      {invoice.generated_id}
                     </td>
                     <td className="px-[20px] py-[20px] 2xl:text-[18px] border-y border-[#22358114] whitespace-nowrap">
                       #{invoice.id?.slice(-6).toUpperCase()}
