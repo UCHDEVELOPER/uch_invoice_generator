@@ -34,9 +34,10 @@ app.get("/test", function (req, res) {
   return res.json("HI Connection Done");
 });
 
+app.use("/public", express.static(path.join(process.cwd(), "src/public")));
+
 app.use("/", mainRoutes);
 
-app.use("/public", express.static(path.join(process.cwd(), "src/public")));
 
 app.use(jsonErrorHandler);
 

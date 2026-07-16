@@ -1,19 +1,19 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import { generateInvoiceHTML } from "../../utils/generateInvoiceHTML.js";
+import { generateInvoiceHTML } from "../utils/generateInvoiceHTML.js";
 import {
   getInvoiceByIdService,
-  updateInvoiceService,
-} from "../../services/selfownDriverServices/invoiceService.js";
-import { validateObjectId } from "../../helpers/validator.js";
+  updateInvoiceService, 
+} from "../services/invoiceService.js";
+import { validateObjectId } from "../helpers/validator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PDF_STORAGE_DIR = path.join(__dirname, "../../public/invoices");
+const PDF_STORAGE_DIR = path.join(__dirname, "../../src/public/invoices");
 
 const PDF_EXPIRY_HOURS = 24;
 
@@ -197,7 +197,11 @@ export async function generatePdf(req, res) {
       }
     }
 
-    const browser = await initBrowser();
+     const browser = await initBrowser();
+
+   
+
+
     page = await browser.newPage();
 
     await page.setViewport({
@@ -207,7 +211,7 @@ export async function generatePdf(req, res) {
     });
 
     const htmlContent = generateInvoiceHTML(invoiceData);
-    
+
     if (!htmlContent) {
       throw new Error("Failed to generate HTML content");
     }
@@ -231,7 +235,7 @@ export async function generatePdf(req, res) {
         left: "10mm",
       },
     });
-   
+
     ensureStorageDir();
 
     const uniqueId = uuidv4();

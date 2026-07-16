@@ -36,3 +36,6 @@ cache/
 .idea/
 .DS_Store
 Thumbs.db
+
+backup
+index.nginx-debian.html

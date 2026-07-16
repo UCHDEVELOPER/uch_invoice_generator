@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import { prisma } from "../config/prismaClient.js";
 import dotenv from "dotenv";
 
@@ -11,11 +11,8 @@ const COLUMN_CONFIG = {
   sage_name: { label: "SageName" },
   call_sign: { label: "CallSign" },
   position: { label: "Position" },
-  shift_type: { label: "ShiftType" },
-  per_hour_rate: { label: "HourlyRate" },
-  weekly_fixed_rate: { label: "WeeklyRate" },
-  total_hours: { label: "TotalHours" },
-  total_days: { label: "TotalDays" },
+  shift_type: { label: "SiteType" },
+  vat_number: { label: "VATNumber" },
   vat_percent: { label: "AdminVATPercentage" },
   admin_fee: { label: "AdminFee" },
   vehicle_hire_charge: { label: "VehicleHireCharge" },
@@ -34,6 +31,18 @@ const COLUMN_CONFIG = {
   zip_code: { label: "PostCode" },
   payroll_id: { label: "PayrollID" },
   status: { label: "Status" },
+  additional_charges_1: { label: "AdditionalDetails1" },
+  additional_charges_2: { label: "AdditionalDetails2" },
+  additional_charges_3: { label: "AdditionalDetails3" },
+  additional_charges_vat_1_percent: {
+    label: "AdditionalDetails1VATPercentage",
+  },
+  additional_charges_vat_2_percent: {
+    label: "AdditionalDetails2VATPercentage",
+  },
+  additional_charges_vat_3_percent: {
+    label: "AdditionalDetails3VATPercentage",
+  },
   carry_forward_admin_fee: { label: "CarryForwardAdminFee" },
   carry_forward_admin_vat_percent: { label: "CarryForwardAdminVATPercentage" },
   carry_forward_vehicle_hire_charge: { label: "CarryForwardVehicleHireCharge" },
@@ -46,6 +55,8 @@ const COLUMN_CONFIG = {
   },
   carry_forward_fuel_charge: { label: "CarryForwardFuelCharge" },
   carry_forward_fuel_vat_percent: { label: "CarryForwardFuelVATPercentage" },
+  docket_total_vat_percent: { label: "DocketTotalVATPercentage" },
+  manual_dockets: { label: "ManualDockets" },
 };
 
 function escapeCsv(value) {
@@ -67,12 +78,39 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function formatDocketsSummary(docketsData) {
+  const dockets = parseDockets(docketsData);
+  if (dockets.length === 0) return " ";
+
+  return dockets.map((d) => `${d.docket_no}:${d.driver_total}`).join(" | ");
+}
+
+function parseDockets(docketsData) {
+  if (!docketsData) return [];
+
+  try {
+    let dockets = docketsData;
+
+    if (typeof docketsData === "string") {
+      dockets = JSON.parse(docketsData);
+    }
+
+    // Return as array
+    return Array.isArray(dockets) ? dockets : [];
+  } catch (error) {
+    console.error("Error parsing dockets:", error);
+    return [];
+  }
+}
+
 function getDriverValue(driver, key) {
   switch (key) {
     case "position":
       return driver.driver_position?.label || "";
     case "shift_type":
       return String(driver.shift_type || "");
+    case "manual_dockets":
+      return formatDocketsSummary(driver.manual_dockets);
     case "per_hour_rate":
     case "weekly_fixed_rate":
     case "total_hours":
@@ -90,7 +128,7 @@ function getDriverValue(driver, key) {
 }
 
 async function fetchDriversFromDB() {
-  return prisma.driver.findMany({
+  return prisma.selfDriver.findMany({
     select: {
       id: true,
       name: true,
@@ -100,10 +138,7 @@ async function fetchDriversFromDB() {
         select: { id: true, label: true },
       },
       shift_type: true,
-      per_hour_rate: true,
-      weekly_fixed_rate: true,
-      total_hours: true,
-      total_days: true,
+      vat_number: true,
       vat_percent: true,
       admin_fee: true,
       vehicle_hire_charge: true,
@@ -123,6 +158,14 @@ async function fetchDriversFromDB() {
       payroll_id: true,
       status: true,
       created_at: true,
+      additional_charges_1: true,
+      additional_charges_2: true,
+      additional_charges_3: true,
+      additional_charges_vat_1_percent: true,
+      additional_charges_vat_2_percent: true,
+      additional_charges_vat_3_percent: true,
+      docket_total_vat_percent: true,
+      manual_dockets: true,
       carry_forward_admin_fee: true,
       carry_forward_admin_vat_percent: true,
       carry_forward_vehicle_hire_charge: true,
@@ -138,7 +181,10 @@ async function fetchDriversFromDB() {
 
 // ─── MAIN EXPORT SERVICE ────────────────────────────────────────────
 
-export async function exportDriversService(format = "csv", columns = []) {
+export async function exportSelfOwnDriversService(
+  format = "csv",
+  columns = [],
+) {
   try {
     if (!columns || columns.length === 0) {
       return {
@@ -149,6 +195,7 @@ export async function exportDriversService(format = "csv", columns = []) {
     }
 
     const validColumns = columns.filter((col) => COLUMN_CONFIG[col]);
+
     if (validColumns.length === 0) {
       return {
         success: false,
