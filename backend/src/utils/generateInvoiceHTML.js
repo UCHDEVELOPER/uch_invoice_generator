@@ -1026,7 +1026,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.totalVatAmount)}</li>
     </ul>
     <li style="flex-grow:1; text-align:right">Adjustment Total:</li>
-    <li style="flex-basis:12%; text-align:center">-${formatCurrency(adjustments.adjustmentTotal)}</li>
+    <li style="flex-basis:12%; text-align:center">${formatCurrency(adjustments.adjustmentTotal)}</li>
   </ul>
 </div>
 
