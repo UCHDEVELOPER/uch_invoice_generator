@@ -225,7 +225,7 @@ export const InvoicePreviewModal = ({ isOpen, onClose, invoice, loading }) => {
             <h2 className="text-xl font-bold">Invoice Preview</h2>
             {invoice && (
               <span className="text-sm opacity-80">
-                #{invoice.id?.slice(-6).toUpperCase() || "N/A"}
+                #{invoice.generated_id || "N/A"}
               </span>
             )}
             {totalPages > 1 && (
@@ -361,7 +361,7 @@ export const InvoicePreviewModal = ({ isOpen, onClose, invoice, loading }) => {
                           Self Bill Number:
                         </td>
                         <td style={{ padding: "2px 8px" }}>
-                          {invoice.id?.slice(-6).toUpperCase() || "N/A"}
+                          {invoice.generated_id || "N/A"}
                         </td>
                       </tr>
                       <tr>

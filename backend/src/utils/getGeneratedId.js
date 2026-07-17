@@ -1,6 +1,6 @@
 import { prisma } from "../config/prismaClient.js";
 
-const STARTING_ID = 400000;
+const STARTING_ID = 1;
 
 export async function getGeneratedId(module = "main") {
   const [lastInvoice, lastSelfInvoice] = await Promise.all([
