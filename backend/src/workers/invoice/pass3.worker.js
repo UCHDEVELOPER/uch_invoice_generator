@@ -124,7 +124,7 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
 
     const financials = calculateInvoiceFinancials(driver, total);
     
-    const nextId = await getGeneratedId();
+    const nextId = await getGeneratedId("main");
 
     await prisma.$transaction(async (tx) => {
       // Create DRAFT invoice

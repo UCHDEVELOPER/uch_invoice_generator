@@ -310,7 +310,7 @@ export async function generateWeeklyInvoice(payload) {
   const totalHours = driver.total_hours ?? 40;
   let weeklyTarget = weeklyFixed > 0 ? weeklyFixed : perHour * totalHours;
 
-  const nextId = await getGeneratedId();
+  const nextId = await getGeneratedId("main");
 
   console.log('===================================');
   console.log(nextId);
@@ -616,7 +616,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
           driver: true,
         },
         orderBy: {
-          created_at: "desc",
+          generated_id: "asc",
         },
       }),
       prisma.invoice.count({ where }),
@@ -1364,7 +1364,7 @@ export const generateInvoiceSummaryService = async ({
     return {
       callsign: invoice.driver?.call_sign || "",
       driverName: invoice.driver?.name || "",
-      invoiceNumber: invoice.id.slice(-6).toUpperCase(),
+      invoiceNumber: invoice.generated_id || "",
       jobs: invoice.total_number_of_dockets || 0,
       debtAmount: invoice.net_amount || 0,
       taxAmount,
@@ -2238,7 +2238,7 @@ export const generateCollectiveInvoiceSummaryService = async ({
 
     driverName: invoice.driver?.name || "",
 
-    invoiceNumber: invoice.id.slice(-6).toUpperCase(),
+    invoiceNumber: invoice.generated_id || "",
 
     jobs: invoice.total_number_of_dockets || 0,
 
@@ -2259,7 +2259,7 @@ export const generateCollectiveInvoiceSummaryService = async ({
 
     driverName: invoice.driver?.name || "",
 
-    invoiceNumber: invoice.id.slice(-6).toUpperCase(),
+    invoiceNumber: invoice.generated_id || "",
 
     jobs: invoice.total_number_of_dockets || 0,
 

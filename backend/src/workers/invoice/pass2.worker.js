@@ -229,7 +229,7 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
 
       const financials = calculateInvoiceFinancials(driver, finalTotal);
 
-      const nextId = await getGeneratedId();
+      const nextId = await getGeneratedId("main");
       
       // Create DRAFT invoice
       const invoice = await tx.invoice.create({

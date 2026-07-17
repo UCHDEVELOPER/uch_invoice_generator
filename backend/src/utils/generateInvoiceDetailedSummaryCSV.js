@@ -56,7 +56,7 @@ export const generateDetailedInvoiceSummaryCSVFile = async (data) => {
   const rows = sortedInvoices.map((invoice) => {
     const callsign = invoice.driver?.call_sign || "N/A";
     const driverName = invoice.driver?.name || "N/A";
-    const selfBillNumber = invoice.id.slice(-6).toUpperCase();
+    const selfBillNumber = invoice.generated_id || "";
     const jobs = invoice.total_number_of_dockets || 0;
     const driversPay = parseFloat(invoice.final_total) || 0;
 

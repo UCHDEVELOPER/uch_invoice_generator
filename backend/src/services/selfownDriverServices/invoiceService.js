@@ -335,7 +335,7 @@ export async function generateWeeklyInvoice(payload) {
     const final_total = net_amount - total_deductions;
     const total_days_in_invoice = countUniqueJobDays(allJobs);
 
-    const nextId = await getGeneratedId();
+    const nextId = await getGeneratedId("self");
 
     const invoice = await prisma.selfInvoice.create({
       data: {
@@ -608,7 +608,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
           batch: true,
         },
         orderBy: {
-          created_at: "desc",
+          generated_id: "asc",
         },
       }),
       prisma.selfInvoice.count({ where }),
@@ -893,7 +893,7 @@ export const generateInvoiceSummaryService = async ({
     return {
       callsign: invoice.driver?.call_sign || "",
       driverName: invoice.driver?.name || "",
-      invoiceNumber: invoice.id.slice(-6).toUpperCase(),
+      invoiceNumber: invoice.generated_id || "" ,
       jobs: invoice.total_number_of_dockets || 0,
       debtAmount: invoice.final_total || 0,
       taxAmount,
@@ -1241,6 +1241,7 @@ export async function redraftInvoiceService(invoiceId) {
           },
           orderBy: { date_time: "asc" },
         });
+
 
         // ── 5. Handle no jobs case ─────────────────────────────────────────
         if (!availableJobs.length) {

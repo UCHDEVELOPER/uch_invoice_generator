@@ -497,7 +497,7 @@ export const transformInvoiceData = (rawData) => {
   const result = {
     invoiceNumber: rawData.id || "",
     selfBillDate: rawData.created_at || rawData.start_date || new Date(),
-    selfBillNumber: rawData.id?.slice(-6).toUpperCase() || "",
+    selfBillNumber: rawData.generated_id || "",
     startDate: rawData.start_date,
     endDate: rawData.end_date,
     status: rawData.status || "",

@@ -39,9 +39,9 @@ async function generateWeeklyBatchCode() {
   });
 
   const totalExisting = await prisma.selfInvoiceBatch.count();
-  const nextDisplayNumber = totalExisting + 1; // 1 → "001", 2 → "002" …
+  const nextDisplayNumber = totalExisting + 1001; 
 
-  return String(nextDisplayNumber).padStart(3, "0");
+  return String(nextDisplayNumber).padStart(4, "0");
 }
 
 /**
@@ -155,7 +155,7 @@ export async function runWeeklySelfInvoiceBatch() {
           manualDockets,
         });
 
-        const nextId = await getGeneratedId();
+        const nextId = await getGeneratedId("self");
 
 
         /**

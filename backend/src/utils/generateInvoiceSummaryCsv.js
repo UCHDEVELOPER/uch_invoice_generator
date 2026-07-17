@@ -67,7 +67,7 @@ export const generateInvoiceSummaryCSVFile = async (data) => {
     "",
     "",
     summary.jobs,
-    summary.debt.toFixed(2),
+    (summary.debt + summary.tax).toFixed(2),
     summary.tax.toFixed(2),
     summary.total.toFixed(2),
   ];

@@ -169,7 +169,7 @@ export async function runPass1({ start, end }) {
     // Release unselected valid jobs to pool
     const unselectedJobs = validJobs.filter((j) => !selectedJobIds.has(j.id));
 
-    const nextId = await getGeneratedId();
+    const nextId = await getGeneratedId("main");
 
     await prisma.$transaction(async (tx) => {
       // Release unselected jobs to pool

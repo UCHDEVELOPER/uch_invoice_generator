@@ -36,7 +36,7 @@ const formatDate = (date) => {
       account: invoice.driver?.bank_account_no || "N/A",
       extraReference: "",
       date: formatDate(invoice.created_at),
-      invoiceNumber: invoice.id.slice(-6).toUpperCase(),
+      invoiceNumber: invoice.generated_id,
       details: `Job on ${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`,
       netAmount: netAmount.toFixed(2),
       taxCode: "T9",

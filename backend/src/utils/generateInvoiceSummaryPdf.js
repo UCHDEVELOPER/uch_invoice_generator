@@ -204,7 +204,7 @@ const formatDate = (dateString) => {
       <tr class="grey total-row">
         <td colspan="3" class="left"><strong>TOTAL</strong></td>
         <td class="center"><strong>${summary.jobs}</strong></td>
-        <td class="right"><strong>${summary.debt.toFixed(2)}</strong></td>
+        <td class="right"><strong>${(summary.debt + summary.tax ).toFixed(2)}</strong></td>
         <td class="right"><strong>${summary.tax.toFixed(2)}</strong></td>
         <td class="right"><strong>${summary.total.toFixed(2)}</strong></td>
       </tr>

@@ -161,7 +161,7 @@ function normalizeManualDockets(md) {
 
 //   const finalTaxDeduction =
 //     standardVatTotal + standardChargeTotal - (manualDriverTotal + docketTotalVat);
-    
+
 //   const finalTotal = docketTotal - finalTaxDeduction;
 
 //   return {
@@ -230,7 +230,7 @@ function calcFinancials(
   docketTotal,
   manualDockets = [],
   additionalOverride = null,
-  draftInvoice // kept for signature compatibility; no longer used for carry-forward values
+  draftInvoice, // kept for signature compatibility; no longer used for carry-forward values
 ) {
   const d = driver;
 
@@ -328,7 +328,9 @@ function calcFinancials(
   );
 
   const finalTaxDeduction = Math.abs(
-    (manualDriverTotal + docketTotalVat) - (standardVatTotal + standardChargeTotal)
+    manualDriverTotal +
+      docketTotalVat -
+      (standardVatTotal + standardChargeTotal),
   );
 
   const finalTotal = Math.abs(docketTotal - finalTaxDeduction);
@@ -525,7 +527,7 @@ function Invoices() {
         n(draftInvoice.docket_total),
         manualDockets, // already normalized — pass directly
         additionalData,
-        draftInvoice
+        draftInvoice,
       )
     : null;
 
@@ -1284,11 +1286,11 @@ function Invoices() {
                       />
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] w-[100px] text-center">
-                      {/* {(currentPage - 1) * limit + index + 1} */}
-                      {invoice.generated_id}
+                      {(currentPage - 1) * limit + index + 1}
                     </td>
                     <td className="px-[20px] py-[20px] 2xl:text-[18px] border-y border-[#22358114] whitespace-nowrap">
-                      #{invoice.id?.slice(-6).toUpperCase()}
+                      {/* #{invoice.id?.slice(-6).toUpperCase()} */}
+                      #{invoice.generated_id}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] w-[100px] text-center">
                       {invoice.driver?.shift_type || "N/A"}
@@ -1734,7 +1736,7 @@ function Invoices() {
                     <span>Docket VAT</span>
                     <span>{fmtGBP(totals.docketTotalVat)}</span>
                   </div>
-                )}  
+                )}
                 {totals.cfTotal > 0 && (
                   <>
                     <div className="flex justify-between">

@@ -336,22 +336,17 @@ export async function deleteJobService(id) {
 
 export async function deleteBulkJobsService(jobIds) {
   try {
-
-    await prisma.jobChangeHistory.deleteMany({
-      where: {
-        job_id: {
-          in: jobIds,
-        },
-      },
-    });
-
-    await prisma.selfJob.deleteMany({
-      where: {
-        id: {
-          in: jobIds,
-        },
-      },
-    });
+    await prisma.$transaction([
+      prisma.jobChangeHistory.deleteMany({
+        where: { job_id: { in: jobIds } },
+      }),
+      prisma.selfInvoiceJob.deleteMany({
+        where: { job_id: { in: jobIds } },
+      }),
+      prisma.selfJob.deleteMany({
+        where: { id: { in: jobIds } },
+      }),
+    ]);
 
     return {
       success: true,
@@ -366,7 +361,6 @@ export async function deleteBulkJobsService(jobIds) {
     };
   }
 }
-
 export async function getDriverJobsService(
   id,
   page = 1,

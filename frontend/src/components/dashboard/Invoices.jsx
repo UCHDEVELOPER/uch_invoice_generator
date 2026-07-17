@@ -1141,7 +1141,8 @@ function Invoices() {
                       {(currentPage - 1) * limit + index + 1}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap">
-                      #{invoice.id?.slice(-6).toUpperCase()}
+                      {/* #{invoice.id?.slice(-6).toUpperCase()} */}
+                      #{invoice.generated_id}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap font-semibold">
                       {invoice.driver?.name || "N/A"}

@@ -48,7 +48,7 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
       `\t${invoice.driver?.iban_no || ""}`,
       "",
       formatDate(invoice.created_at),
-      invoice.id.slice(-6).toUpperCase(),
+      invoice.generated_id,
       `Job on ${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`,
       netAmount.toFixed(2),
       "T9",
