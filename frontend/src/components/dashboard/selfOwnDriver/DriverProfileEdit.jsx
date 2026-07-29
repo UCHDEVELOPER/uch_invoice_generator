@@ -206,6 +206,7 @@ export default function DriverProfileEdit() {
                   id: Date.now() + index, // Generate unique IDs for existing dockets
                   docket_no: docket.docket_no ?? "",
                   driver_total: docket.driver_total ?? "",
+                  vat_percent: docket.vat_percent ?? 0,
                 }));
                 setManualDockets(formattedDockets);
               }
@@ -687,12 +688,10 @@ export default function DriverProfileEdit() {
           </div>
 
           <div className="flex flex-col gap-1">
-              <Input
+            <Input
               label="Site Type"
               value={formData.shift_type}
-              onChange={(e) =>
-                handleInputChange("shift_type", e.target.value)
-              }
+              onChange={(e) => handleInputChange("shift_type", e.target.value)}
             />
             <p
               className={`text-xs text-red-500 font-bold min-h-[14px] transition-opacity ${
@@ -1199,12 +1198,17 @@ export default function DriverProfileEdit() {
                     Docket Number
                   </label>
                 </div>
-                <div className="md:col-span-4">
+                <div className="md:col-span-3">
                   <label className="text-xs font-bold text-gray-700 uppercase">
                     Driver Total (£)
                   </label>
                 </div>
                 <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-700 uppercase">
+                    VAT (%)
+                  </label>
+                </div>
+                <div className="md:col-span-1">
                   <label className="text-xs font-bold text-gray-700 uppercase">
                     Action
                   </label>
@@ -1245,7 +1249,7 @@ export default function DriverProfileEdit() {
                   </div>
 
                   {/* Driver Total */}
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold text-gray-700 md:hidden">
                         Driver Total
@@ -1266,8 +1270,32 @@ export default function DriverProfileEdit() {
                     </div>
                   </div>
 
+                  {/* VAT Percent */}
+                  <div className="md:col-span-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-gray-700 md:hidden">
+                        VAT (%)
+                      </label>
+                      <Input
+                        placeholder="e.g., 20"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={docket.vat_percent}
+                        onChange={(e) =>
+                          handleDocketChange(
+                            docket.id,
+                            "vat_percent",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
                   {/* Remove Button */}
-                  <div className="md:col-span-2 flex items-end">
+                  <div className="md:col-span-1 flex items-end">
                     <button
                       type="button"
                       onClick={() => handleRemoveDocket(docket.id)}

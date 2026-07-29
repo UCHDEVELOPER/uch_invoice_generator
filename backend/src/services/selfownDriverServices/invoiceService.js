@@ -893,7 +893,7 @@ export const generateInvoiceSummaryService = async ({
     return {
       callsign: invoice.driver?.call_sign || "",
       driverName: invoice.driver?.name || "",
-      invoiceNumber: invoice.generated_id || "" ,
+      invoiceNumber: invoice.generated_id || "",
       jobs: invoice.total_number_of_dockets || 0,
       debtAmount: invoice.final_total || 0,
       taxAmount,
@@ -948,8 +948,8 @@ const getOrCreateInvoiceBatch = async (prisma, fromDate, toDate) => {
     orderBy: { batch_number: "desc" },
   });
 
-const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
-const batchCode = String(nextBatchNumber).padStart(4, "0");
+  const nextBatchNumber = lastBatch ? lastBatch.batch_number + 1 : 1001;
+  const batchCode = String(nextBatchNumber).padStart(4, "0");
 
   return prisma.selfInvoiceBatch.create({
     data: {
@@ -1075,16 +1075,16 @@ export async function generateDetailedInvoiceSummaryService(
         driver: true,
         jobs: true,
       },
-    orderBy: [
-      {
-        start_date: "asc",
-      },
-      {
-        driver: {
-          name: "asc",
+      orderBy: [
+        {
+          start_date: "asc",
         },
-      },
-    ],
+        {
+          driver: {
+            name: "asc",
+          },
+        },
+      ],
     });
 
     console.log(invoices.length, "invoices for detailed summary");
@@ -1242,7 +1242,6 @@ export async function redraftInvoiceService(invoiceId) {
           orderBy: { date_time: "asc" },
         });
 
-
         // ── 5. Handle no jobs case ─────────────────────────────────────────
         if (!availableJobs.length) {
           const resetInvoice = await tx.selfInvoice.update({
@@ -1318,6 +1317,14 @@ export async function redraftInvoiceService(invoiceId) {
           0,
         );
 
+        const manualDocketVatTotal = manualDockets.reduce(
+          (sum, docket) =>
+            sum +
+            Number(docket.vat_percent ?? 0 / 100) *
+              Number(docket.driver_total || 0),
+          0,
+        );
+
         const docketTotalVatPercentValue =
           docketTotal * (Number(driver.docket_total_vat_percent ?? 0) / 100);
 
@@ -1367,24 +1374,7 @@ export async function redraftInvoiceService(invoiceId) {
           additionalCharges3Vat +
           carryForwardVat;
 
-        console.log("========== Invoice Deduction Breakdown ==========");
-
-        console.log({
-          adminFee,
-          vehicleHire,
-          insurance,
-          fuel,
-          additionalCharges1,
-          additionalCharges2,
-          additionalCharges3,
-          carriedForward,
-          totalVat,
-          docketTotalVatPercentValue,
-          manualDocketTotal,
-          docketTotal,
-        });
-
-        const deductionAdditionTotal =
+        const totalCharges =
           adminFee +
           vehicleHire +
           insurance +
@@ -1395,28 +1385,14 @@ export async function redraftInvoiceService(invoiceId) {
           carriedForward +
           totalVat;
 
-        const deductionSubtractionTotal =
-          docketTotalVatPercentValue + manualDocketTotal;
+        const totalAddBacks =
+          docketTotalVatPercentValue + manualDocketTotal + manualDocketVatTotal;
 
-        const rawTotalDeductions =
-          deductionAdditionTotal - deductionSubtractionTotal;
-
-        const totalDeductions = Math.abs(rawTotalDeductions);
+        const totalDeductions = totalCharges - totalAddBacks;
 
         const netAmount = docketTotal;
 
-        console.log("---------- Calculation Totals ----------");
-
-        console.log({
-          deductionAdditionTotal,
-          deductionSubtractionTotal,
-          rawTotalDeductions,
-          totalDeductions,
-          netAmount,
-        });
-
-        console.log("===============================================");
-        const finalTotal = Math.abs(netAmount - totalDeductions);
+        const finalTotal = netAmount - totalDeductions;
 
         // ── 7. Attach all available jobs to this invoice ───────────────────
         const jobIds = availableJobs.map((job) => job.id);

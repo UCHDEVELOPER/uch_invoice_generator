@@ -58,6 +58,17 @@ function sumManualDocketTotals(manualDockets = []) {
   );
 }
 
+function sumManualDocketVatTotals(manualDockets = []) {
+  const normalized = normalizeManualDockets(manualDockets);
+
+  return normalized.reduce((sum, item) => {
+    const driverTotal = Number(item?.driver_total || 0);
+    const vatPercent = Number(item?.vat_percent || 0);
+
+    return sum + (driverTotal * vatPercent) / 100;
+  }, 0);
+}
+
 /**
  * Main financial calculator
  */
@@ -226,10 +237,10 @@ export function calculateSelfInvoiceFinancials({
     adminFee +
     vehicleHire +
     insurance +
-    fuel + 
+    fuel +
     additional1 +
     additional2 +
-    additional3 + 
+    additional3 +
     carryForwardTotal;
 
   /**
@@ -239,14 +250,13 @@ export function calculateSelfInvoiceFinancials({
 
   const manualDriverTotal = sumManualDocketTotals(normalizedManualDockets);
 
+  const manualDriverVatTotal = sumManualDocketVatTotals(normalizedManualDockets);
+
   /**
    * FINAL TAX DEDUCTION
    */
   const finalTaxDeduction =
-    standardVatTotal +
-    standardChargeTotal -
-    manualDriverTotal - 
-    docketTotalVat;
+    standardVatTotal + standardChargeTotal - (manualDriverTotal + manualDriverVatTotal  + docketTotalVat);
 
   /**
    * FINAL TOTAL

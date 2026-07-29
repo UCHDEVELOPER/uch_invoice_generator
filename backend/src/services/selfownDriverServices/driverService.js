@@ -376,6 +376,9 @@ export async function updateDriverService(id, data) {
         data[field] = parseInt(data[field], 10);
       }
     });
+    
+   
+    data.manual_dockets = data.manual_dockets || null;
 
     const updatePayload = { ...data };
 

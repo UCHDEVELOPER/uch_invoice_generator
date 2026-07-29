@@ -122,6 +122,7 @@ function AddNewDriver() {
         id: Date.now(),
         docket_no: "",
         driver_total: "",
+        vat_percent: "",
       },
     ]);
   };
@@ -136,6 +137,13 @@ function AddNewDriver() {
 
   const handleRemoveDocket = (id) => {
     setManualDockets(manualDockets.filter((docket) => docket.id !== id));
+  };
+
+  // Helper: VAT amount for a single docket
+  const getDocketVatAmount = (docket) => {
+    const total = parseFloat(docket.driver_total) || 0;
+    const vat = parseFloat(docket.vat_percent) || 0;
+    return (total * vat) / 100;
   };
 
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
@@ -217,6 +225,7 @@ function AddNewDriver() {
       });
 
       // Add manual dockets as JSON string
+      // Each docket now includes: docket_no, driver_total, vat_percent
       if (manualDockets.length > 0) {
         const docketsForSubmit = manualDockets.map(({ id, ...rest }) => rest);
         submitData.append("manual_dockets", JSON.stringify(docketsForSubmit));
@@ -1214,14 +1223,19 @@ function AddNewDriver() {
                     #
                   </label>
                 </div>
-                <div className="md:col-span-5">
+                <div className="md:col-span-4">
                   <label className="text-xs font-bold text-gray-700 uppercase">
                     Docket Number
                   </label>
                 </div>
-                <div className="md:col-span-4">
+                <div className="md:col-span-3">
                   <label className="text-xs font-bold text-gray-700 uppercase">
                     Driver Total (£)
+                  </label>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-700 uppercase">
+                    VAT (%)
                   </label>
                 </div>
                 <div className="md:col-span-2">
@@ -1244,7 +1258,7 @@ function AddNewDriver() {
                   </div>
 
                   {/* Docket Number */}
-                  <div className="md:col-span-5">
+                  <div className="md:col-span-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold text-gray-700 md:hidden">
                         Docket Number
@@ -1265,7 +1279,7 @@ function AddNewDriver() {
                   </div>
 
                   {/* Driver Total */}
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold text-gray-700 md:hidden">
                         Driver Total
@@ -1279,6 +1293,30 @@ function AddNewDriver() {
                           handleDocketChange(
                             docket.id,
                             "driver_total",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* VAT Percent */}
+                  <div className="md:col-span-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-gray-700 md:hidden">
+                        VAT (%)
+                      </label>
+                      <Input
+                        placeholder="e.g., 20"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={docket.vat_percent}
+                        onChange={(e) =>
+                          handleDocketChange(
+                            docket.id,
+                            "vat_percent",
                             e.target.value,
                           )
                         }
@@ -1304,7 +1342,7 @@ function AddNewDriver() {
               {/* Summary Section */}
               {manualDockets.length > 0 && (
                 <div className="mt-[20px] pt-[20px] border-t border-gray-200 bg-white p-[15px] rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px]">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-[20px]">
                     <div>
                       <p className="text-xs text-gray-600 font-semibold">
                         Total Docket Number
@@ -1323,6 +1361,20 @@ function AddNewDriver() {
                           .reduce(
                             (sum, dock) =>
                               sum + (parseFloat(dock.driver_total) || 0),
+                            0,
+                          )
+                          .toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 font-semibold">
+                        Total VAT Amount
+                      </p>
+                      <p className="text-lg font-bold text-primary mt-1">
+                        £
+                        {manualDockets
+                          .reduce(
+                            (sum, dock) => sum + getDocketVatAmount(dock),
                             0,
                           )
                           .toFixed(2)}
