@@ -34,262 +34,6 @@ const formatDateTime = (dateString) => {
   return `${dateFormatted} ${timeFormatted}`;
 };
 
-// export const transformInvoiceData = (rawData) => {
-//   const { jobs = [], driver = {} } = rawData;
-
-//   const calculatedDocketTotal = jobs.reduce(
-//     (sum, d) => sum + (parseFloat(d.driver_total) || 0),
-//     0,
-//   );
-
-//   const transformedDockets = jobs.map((docket) => ({
-//     docket_no: docket.docket_no,
-//     pickupDateTime: docket.date_time,
-//     tariff: docket.tariff,
-//     journeyDetails: docket.journey,
-//     amount: docket.driver_total,
-//   }));
-
-//   const addressParts = (driver.address_details || "")
-//     .split(",")
-//     .map((s) => s.trim());
-
-//   // Per-row charges & VAT percentages
-//   const adminFee = parseFloat(rawData.admin_fee) || 0;
-//   const adminVatPct = parseFloat(rawData.driver.vat_percent) || 0;
-//   const vehicleHire = parseFloat(rawData.vehicle_hire_charges) || 0;
-//   const vehicleVatPct = parseFloat(driver.vehicle_vat_percent) || 0;
-//   const insurance = parseFloat(rawData.insurance_charge) || 0;
-//   const insuranceVatPct = parseFloat(driver.insurance_vat_percent) || 0;
-//   const fuelCharge = parseFloat(rawData.fuel_charge) || 0;
-//   const fuelVatPct = parseFloat(driver.fuel_vat_percent) || 0;
-//   const additional = parseFloat(rawData.additional_charges) || 0;
-//   const additional_charges_1 = parseFloat(driver.additional_charges_1) || 0;
-//   const additional_charges_2 = parseFloat(driver.additional_charges_2) || 0;
-//   const additional_charges_3 = parseFloat(driver.additional_charges_3) || 0;
-//   const carryForwardAdmin = Number(rawData.carry_forward_admin_fee ?? 0);
-//   const carryForwardVehicle = Number(
-//     rawData.carry_forward_vehicle_hire_charge ?? 0,
-//   );
-//   const carryForwardInsurance = Number(
-//     rawData.carry_forward_insurance_charge ?? 0,
-//   );
-//   const carryForwardFuel = Number(rawData.carry_forward_fuel_charge ?? 0);
-//   const carriedForward =
-//     carryForwardAdmin +
-//     carryForwardVehicle +
-//     carryForwardInsurance +
-//     carryForwardFuel;
-
-//   const carryForwardAdminVat =
-//     carryForwardAdmin *
-//     (Number(rawData.carry_forward_admin_vat_percent ?? 0) / 100);
-
-//   const carryForwardVehicleVat =
-//     carryForwardVehicle *
-//     (Number(rawData.carry_forward_vehicle_vat_percent ?? 0) / 100);
-
-//   const carryForwardInsuranceVat =
-//     carryForwardInsurance *
-//     (Number(rawData.carry_forward_insurance_vat_percent ?? 0) / 100);
-
-//   const carryForwardFuelVat =
-//     carryForwardFuel *
-//     (Number(rawData.carry_forward_fuel_vat_percent ?? 0) / 100);
-
-//   const carryForwardVat =
-//     carryForwardAdminVat +
-//     carryForwardVehicleVat +
-//     carryForwardInsuranceVat +
-//     carryForwardFuelVat;
-
-//   // VAT amounts per row
-//   const adminVatAmt = adminFee * (adminVatPct / 100);
-//   const vehicleVatAmt = vehicleHire * (vehicleVatPct / 100);
-//   const insuranceVatAmt = insurance * (insuranceVatPct / 100);
-//   const fuelVatAmt = fuelCharge * (fuelVatPct / 100);
-//   const additional_charges_vat_1_percent =
-//     additional_charges_1 * (driver.additional_charges_vat_1_percent / 100) || 0;
-//   const additional_charges_vat_2_percent =
-//     additional_charges_2 * (driver.additional_charges_vat_2_percent / 100) || 0;
-//   const additional_charges_vat_3_percent =
-//     additional_charges_3 * (driver.additional_charges_vat_3_percent / 100) || 0;
-//   const docketTotalVat =
-//     rawData.docket_total * (driver.docket_total_vat_percent / 100) || 0;
-
-//   // ✅ Calculate manual dockets total for deduction
-//   let manualDocketsTotal = 0;
-//   if (driver?.manual_dockets) {
-//     let manualDockets = [];
-//     if (typeof driver.manual_dockets === "string") {
-//       try {
-//         const parsed = JSON.parse(driver.manual_dockets);
-//         manualDockets = Array.isArray(parsed) ? parsed : [];
-//       } catch (err) {
-//         manualDockets = [];
-//       }
-//     } else if (Array.isArray(driver.manual_dockets)) {
-//       manualDockets = driver.manual_dockets;
-//     }
-//     manualDocketsTotal = manualDockets.reduce(
-//       (sum, md) => sum + Number(md.driver_total || 0),
-//       0,
-//     );
-//   }
-
-//   // ✅ Include manual dockets in totalCharges
-//   const totalCharges = Math.abs(
-//     adminFee +
-//     vehicleHire +
-//     insurance +
-//     fuelCharge +
-//     additional +
-//     additional_charges_1 +
-//     additional_charges_2 +
-//     additional_charges_3 +
-//     carriedForward
-//   );
-
-//   const totalVatAmount =
-//     adminVatAmt +
-//     vehicleVatAmt +
-//     insuranceVatAmt +
-//     fuelVatAmt +
-//     additional_charges_vat_1_percent +
-//     additional_charges_vat_2_percent +
-//     additional_charges_vat_3_percent +
-//     carryForwardVat;
-//   const adjustmentTotal = Math.abs(totalCharges + totalVatAmount - (manualDocketsTotal +
-//     docketTotalVat));
-
-//   const docketTotal = rawData.docket_total || calculatedDocketTotal;
-//   const finalTotal =  rawData.final_total || docketTotal - adjustmentTotal;
-
-//   return {
-//     invoiceNumber: rawData.id || "",
-//     selfBillDate: rawData.created_at || rawData.start_date || new Date(),
-//     selfBillNumber: rawData.id?.slice(-6).toUpperCase() || "",
-//     startDate: rawData.start_date,
-//     endDate: rawData.end_date,
-//     status: rawData.status || "",
-//     driver: {
-//       name: driver.name || "",
-//       callsign: driver.call_sign || "",
-//       addressLine1: addressParts[0] || driver.address_details || "",
-//       city: addressParts[1] || "",
-//       postcode: driver.zip_code || "",
-//       phone: driver.phone_number || "",
-//       email: driver.email || "",
-//       bankAccountNo: driver.bank_account_no || "",
-//       ibanNo: driver.iban_no || "",
-//       paymentReference: driver.payment_reference || "",
-//       payrollId: driver.payroll_id || "",
-//       vat_number: driver.vat_number || ""
-//     },
-//     company: {
-//       address: "Colnbrook Cargo Centre, Old Bath Road, Colnbrook, SL3 0NW.",
-//       telephone: "+44 (0) 1784 242 824",
-//       fax: "+44 (0) 1784 245 222",
-//       email: "info@uchlogistics.co.uk",
-//     },
-//     billTo: {
-//       companyName: "UCH Logistics Ltd",
-//       addressLine1: "Colnbrook Cargo Centre",
-//       addressLine2: "Old Bath Road",
-//       city: "Colnbrook",
-//       region: "Slough",
-//       postcode: "SL3 0NW",
-//       phone: "+44 (0)1784 242824",
-//     },
-//     dockets: transformedDockets,
-//     adjustments: {
-//       adminFee: {
-//         value: adminFee,
-//         vatPct: adminVatPct,
-//         vatAmt: adminVatAmt,
-//         rowTotal: adminFee + adminVatAmt,
-//       },
-//       vehicleHire: {
-//         value: vehicleHire,
-//         vatPct: vehicleVatPct,
-//         vatAmt: vehicleVatAmt,
-//         rowTotal: vehicleHire + vehicleVatAmt,
-//       },
-//       insurance: {
-//         value: insurance,
-//         vatPct: insuranceVatPct,
-//         vatAmt: insuranceVatAmt,
-//         rowTotal: insurance + insuranceVatAmt,
-//       },
-//       fuelCharge: {
-//         value: fuelCharge,
-//         vatPct: fuelVatPct,
-//         vatAmt: fuelVatAmt,
-//         rowTotal: fuelCharge + fuelVatAmt,
-//       },
-//       additional: {
-//         value: additional,
-//         vatPct: 0,
-//         vatAmt: 0,
-//         rowTotal: additional,
-//       },
-//       additional_charges_1: {
-//         value: additional_charges_1,
-//         vatPct: driver.additional_charges_vat_1_percent,
-//         vatAmt: additional_charges_vat_1_percent,
-//         rowTotal: additional_charges_1 + additional_charges_vat_1_percent,
-//       },
-//       additional_charges_2: {
-//         value: additional_charges_2,
-//         vatPct: driver.additional_charges_vat_2_percent,
-//         vatAmt: additional_charges_vat_2_percent,
-//         rowTotal: additional_charges_2 + additional_charges_vat_2_percent,
-//       },
-//       additional_charges_3: {
-//         value: additional_charges_3,
-//         vatPct: driver.additional_charges_vat_3_percent,
-//         vatAmt: additional_charges_vat_3_percent,
-//         rowTotal: additional_charges_3 + additional_charges_vat_3_percent,
-//       },
-//       carriedForward: {
-//         value: carriedForward,
-//         vatPct: 0,
-//         vatAmt: carryForwardVat,
-//         rowTotal: carriedForward,
-//       },
-//       // ✅ Added manual dockets to adjustments
-//       manualDockets: {
-//         value: manualDocketsTotal,
-//         vatPct: 0,
-//         vatAmt: 0,
-//         rowTotal: manualDocketsTotal,
-//       },
-//       docketTotal: {
-//         value: docketTotal,
-//         vatPct: driver.docket_total_vat_percent,
-//         vatAmt: docketTotalVat,
-//         rowTotal: docketTotal,
-//       },
-//       totalCharges,
-//       totalVatAmount,
-//       adjustmentTotal,
-//     },
-//     totals: {
-//       carriedForward: carriedForward + carryForwardVat,
-//       docketTotal: docketTotal,
-//       numberOfDockets: rawData.total_number_of_dockets || jobs.length,
-//       totalDeductions: rawData.total_deductions || adjustmentTotal,
-//       netAmount: rawData.net_amount || docketTotal,
-//       grandTotal: finalTotal,
-//     },
-//     paymentDetails: {
-//       bacs: finalTotal,
-//       isPaid: rawData.is_paid || false,
-//     },
-//   };
-// };
-
-
 export const transformInvoiceData = (rawData) => {
   const { jobs = [], driver = {} } = rawData;
 
@@ -302,7 +46,10 @@ export const transformInvoiceData = (rawData) => {
     (sum, d) => sum + (parseFloat(d.driver_total) || 0),
     0,
   );
-  console.log("calculatedDocketTotal (sum of job.driver_total):", calculatedDocketTotal);
+  console.log(
+    "calculatedDocketTotal (sum of job.driver_total):",
+    calculatedDocketTotal,
+  );
 
   const transformedDockets = jobs.map((docket) => ({
     docket_no: docket.docket_no,
@@ -332,17 +79,31 @@ export const transformInvoiceData = (rawData) => {
   const additional_charges_3 = parseFloat(driver.additional_charges_3) || 0;
 
   console.table({
-    adminFee, adminVatPct,
-    vehicleHire, vehicleVatPct,
-    insurance, insuranceVatPct,
-    fuelCharge, fuelVatPct,
+    adminFee,
+    adminVatPct,
+    vehicleHire,
+    vehicleVatPct,
+    insurance,
+    insuranceVatPct,
+    fuelCharge,
+    fuelVatPct,
     additional,
-    additional_charges_1, additional_charges_2, additional_charges_3,
+    additional_charges_1,
+    additional_charges_2,
+    additional_charges_3,
   });
   // NOTE: rawData.driver.vat_percent is used for adminVatPct instead of driver.vat_percent.
   // These should be the same object (driver = rawData.driver), but log both raw sources to be sure.
-  console.log("Sanity check — rawData.driver === driver?", rawData.driver === driver);
-  console.log("rawData.driver.vat_percent:", rawData.driver?.vat_percent, "| driver.vat_percent:", driver.vat_percent);
+  console.log(
+    "Sanity check — rawData.driver === driver?",
+    rawData.driver === driver,
+  );
+  console.log(
+    "rawData.driver.vat_percent:",
+    rawData.driver?.vat_percent,
+    "| driver.vat_percent:",
+    driver.vat_percent,
+  );
   console.groupEnd();
 
   // ---- Carry forward charges ----
@@ -362,7 +123,10 @@ export const transformInvoiceData = (rawData) => {
     carryForwardFuel;
 
   console.table({
-    carryForwardAdmin, carryForwardVehicle, carryForwardInsurance, carryForwardFuel,
+    carryForwardAdmin,
+    carryForwardVehicle,
+    carryForwardInsurance,
+    carryForwardFuel,
   });
   console.log("carriedForward (sum of the 4 above):", carriedForward);
 
@@ -389,7 +153,10 @@ export const transformInvoiceData = (rawData) => {
     carryForwardFuelVat;
 
   console.table({
-    carryForwardAdminVat, carryForwardVehicleVat, carryForwardInsuranceVat, carryForwardFuelVat,
+    carryForwardAdminVat,
+    carryForwardVehicleVat,
+    carryForwardInsuranceVat,
+    carryForwardFuelVat,
   });
   console.log("carryForwardVat (sum of the 4 above):", carryForwardVat);
   console.groupEnd();
@@ -419,13 +186,18 @@ export const transformInvoiceData = (rawData) => {
     additional_charges_vat_3_percent,
     docketTotalVat,
   });
-  console.log("rawData.docket_total (used for docketTotalVat):", rawData.docket_total,
-    "| driver.docket_total_vat_percent:", driver.docket_total_vat_percent);
+  console.log(
+    "rawData.docket_total (used for docketTotalVat):",
+    rawData.docket_total,
+    "| driver.docket_total_vat_percent:",
+    driver.docket_total_vat_percent,
+  );
   console.groupEnd();
 
   // ---- Manual dockets ----
   console.group("📄 Manual dockets");
   let manualDocketsTotal = 0;
+  let manualDocketsVatTotal = 0;
   if (driver?.manual_dockets) {
     let manualDockets = [];
     if (typeof driver.manual_dockets === "string") {
@@ -433,7 +205,11 @@ export const transformInvoiceData = (rawData) => {
         const parsed = JSON.parse(driver.manual_dockets);
         manualDockets = Array.isArray(parsed) ? parsed : [];
       } catch (err) {
-        console.warn("⚠️ Failed to parse driver.manual_dockets JSON:", err, driver.manual_dockets);
+        console.warn(
+          "⚠️ Failed to parse driver.manual_dockets JSON:",
+          err,
+          driver.manual_dockets,
+        );
         manualDockets = [];
       }
     } else if (Array.isArray(driver.manual_dockets)) {
@@ -441,6 +217,14 @@ export const transformInvoiceData = (rawData) => {
     }
     manualDocketsTotal = manualDockets.reduce(
       (sum, md) => sum + Number(md.driver_total || 0),
+      0,
+    );
+    console.log("Parsed manualDockets array:", manualDockets);
+
+    manualDocketsVatTotal = manualDockets.reduce(
+      (sum, md) =>
+        sum +
+        (Number(md.driver_total || 0) * Number(md.vat_percent || 0)) / 100,
       0,
     );
     console.log("Parsed manualDockets array:", manualDockets);
@@ -455,16 +239,19 @@ export const transformInvoiceData = (rawData) => {
 
   const totalCharges = Math.abs(
     adminFee +
-    vehicleHire +
-    insurance +
-    fuelCharge +
-    additional +
-    additional_charges_1 +
-    additional_charges_2 +
-    additional_charges_3 +
-    carriedForward
+      vehicleHire +
+      insurance +
+      fuelCharge +
+      additional +
+      additional_charges_1 +
+      additional_charges_2 +
+      additional_charges_3 +
+      carriedForward,
   );
-  console.log("totalCharges (abs of all base charges + carriedForward, NO vat, NO manual dockets):", totalCharges);
+  console.log(
+    "totalCharges (abs of all base charges + carriedForward, NO vat, NO manual dockets):",
+    totalCharges,
+  );
 
   const totalVatAmount =
     adminVatAmt +
@@ -475,22 +262,50 @@ export const transformInvoiceData = (rawData) => {
     additional_charges_vat_2_percent +
     additional_charges_vat_3_percent +
     carryForwardVat;
-  console.log("totalVatAmount (sum of all VAT amts incl carryForwardVat):", totalVatAmount);
+  console.log(
+    "totalVatAmount (sum of all VAT amts incl carryForwardVat):",
+    totalVatAmount,
+  );
 
-  const preAbsAdjustment = totalCharges + totalVatAmount - (manualDocketsTotal + docketTotalVat);
-  console.log("pre-abs adjustmentTotal = totalCharges + totalVatAmount - (manualDocketsTotal + docketTotalVat):", preAbsAdjustment,
-    preAbsAdjustment < 0 ? "⚠️ NEGATIVE before Math.abs() — sign will flip!" : "");
+  const preAbsAdjustment =
+    totalCharges +
+    totalVatAmount -
+    (manualDocketsTotal + manualDocketsVatTotal + docketTotalVat);
+  console.log(
+    "pre-abs adjustmentTotal = totalCharges + totalVatAmount - (manualDocketsTotal + docketTotalVat):",
+    preAbsAdjustment,
+    preAbsAdjustment < 0
+      ? "⚠️ NEGATIVE before Math.abs() — sign will flip!"
+      : "",
+  );
   const adjustmentTotal = Math.abs(preAbsAdjustment);
   console.log("adjustmentTotal (post abs):", adjustmentTotal);
 
   const docketTotal = rawData.docket_total || calculatedDocketTotal;
-  console.log("docketTotal (rawData.docket_total || calculatedDocketTotal):", docketTotal,
-    "| source used:", rawData.docket_total ? "rawData.docket_total" : "calculatedDocketTotal");
+  console.log(
+    "docketTotal (rawData.docket_total || calculatedDocketTotal):",
+    docketTotal,
+    "| source used:",
+    rawData.docket_total ? "rawData.docket_total" : "calculatedDocketTotal",
+  );
 
   const finalTotal = rawData.final_total || docketTotal - adjustmentTotal;
-  console.log("finalTotal (rawData.final_total || docketTotal - adjustmentTotal):", finalTotal,
-    "| source used:", rawData.final_total ? "rawData.final_total" : "docketTotal - adjustmentTotal");
-  console.log("  docketTotal - adjustmentTotal =", docketTotal, "-", adjustmentTotal, "=", docketTotal - adjustmentTotal);
+  console.log(
+    "finalTotal (rawData.final_total || docketTotal - adjustmentTotal):",
+    finalTotal,
+    "| source used:",
+    rawData.final_total
+      ? "rawData.final_total"
+      : "docketTotal - adjustmentTotal",
+  );
+  console.log(
+    "  docketTotal - adjustmentTotal =",
+    docketTotal,
+    "-",
+    adjustmentTotal,
+    "=",
+    docketTotal - adjustmentTotal,
+  );
 
   console.groupEnd();
 
@@ -513,7 +328,7 @@ export const transformInvoiceData = (rawData) => {
       ibanNo: driver.iban_no || "",
       paymentReference: driver.payment_reference || "",
       payrollId: driver.payroll_id || "",
-      vat_number: driver.vat_number || ""
+      vat_number: driver.vat_number || "",
     },
     company: {
       address: "Colnbrook Cargo Centre, Old Bath Road, Colnbrook, SL3 0NW.",
@@ -590,8 +405,8 @@ export const transformInvoiceData = (rawData) => {
       manualDockets: {
         value: manualDocketsTotal,
         vatPct: 0,
-        vatAmt: 0,
-        rowTotal: manualDocketsTotal,
+        vatAmt: manualDocketsVatTotal,
+        rowTotal: manualDocketsTotal + manualDocketsVatTotal,
       },
       docketTotal: {
         value: docketTotal,
@@ -790,7 +605,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
             </tr>
             <tr>
               <td style="padding: 2px 8px">VAT No:</td>
-              <td style="padding: 2px 8px">${driver.vat_number ?? N/A}</td>
+              <td style="padding: 2px 8px">${driver.vat_number ?? N / A}</td>
             </tr>
           </table>
         </div>
@@ -993,16 +808,30 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       );
 
       const docketRows = manualDockets
-        .map(
-          (md) => `
+        .map((md) => {
+          const mdTotal = Number(md.driver_total || 0);
+          const mdVatPct = Number(md.vat_percent || 0);
+          const mdVatAmt = (mdTotal * mdVatPct) / 100;
+          return `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">${md.docket_no}</li>
-      <li style="flex-basis:14%; text-align:center">${formatCurrency(Number(md.driver_total || 0))}</li>
-      <li style="flex-basis:10%; text-align:center">-</li>
-      <li style="flex-basis:14%; text-align:center">-</li>
-    </ul>`,
-        )
+      <li style="flex-basis:14%; text-align:center">${formatCurrency(mdTotal)}</li>
+      <li style="flex-basis:10%; text-align:center">${mdVatPct ? `${mdVatPct}%` : "-"}</li>
+      <li style="flex-basis:14%; text-align:center">${mdVatAmt ? formatCurrency(mdVatAmt) : "-"}</li>
+    </ul>`;
+        })
         .join("");
+
+      const manualDocketTotal = manualDockets.reduce(
+        (sum, md) => sum + Number(md.driver_total || 0),
+        0,
+      );
+      const manualDocketVatTotal = manualDockets.reduce(
+        (sum, md) =>
+          sum +
+          (Number(md.driver_total || 0) * Number(md.vat_percent || 0)) / 100,
+        0,
+      );
 
       return `
     ${docketRows}
@@ -1010,7 +839,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       <li style="flex-basis:38%">Manual Dockets Total</li>
       <li style="flex-basis:14%; text-align:center">+${formatCurrency(manualDocketTotal)}</li>
       <li style="flex-basis:10%; text-align:center">-</li>
-      <li style="flex-basis:14%; text-align:center">-</li>
+      <li style="flex-basis:14%; text-align:center">${manualDocketVatTotal ? `+${formatCurrency(manualDocketVatTotal)}` : "-"}</li>
     </ul>`;
     })()}
   </div>
