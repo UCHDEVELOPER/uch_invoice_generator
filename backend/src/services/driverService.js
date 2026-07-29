@@ -603,7 +603,7 @@ export async function importDriversService(file) {
       if (row.FuelVATPercentage != null && row.FuelVATPercentage !== "")
         payload.fuel_vat_percent = Number(row.FuelVATPercentage);
       if (row.ShiftType?.toString().trim())
-        payload.shift_type = row.ShiftType.toString().trim();
+        payload.shift_type = row.ShiftType.toString().trim().toUpperCase();
       if (driver_position_id !== undefined)
         payload.driver_position_id = driver_position_id;
       if (row.CarryForwardAdminFee != null && row.CarryForwardAdminFee !== "")
