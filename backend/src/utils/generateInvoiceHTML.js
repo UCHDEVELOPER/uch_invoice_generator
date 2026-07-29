@@ -227,7 +227,6 @@ export const transformInvoiceData = (rawData) => {
         (Number(md.driver_total || 0) * Number(md.vat_percent || 0)) / 100,
       0,
     );
-    console.log("Parsed manualDockets array:", manualDockets);
   } else {
     console.log("No manual_dockets on driver.");
   }
@@ -605,7 +604,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
             </tr>
             <tr>
               <td style="padding: 2px 8px">VAT No:</td>
-              <td style="padding: 2px 8px">${driver.vat_number ?? N / A}</td>
+              <td style="padding: 2px 8px">${driver.vat_number ?? "N/A"}</td>
             </tr>
           </table>
         </div>
@@ -801,12 +800,6 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         return "";
       }
 
-      // Calculate total of manual dockets
-      const manualDocketTotal = manualDockets.reduce(
-        (sum, md) => sum + Number(md.driver_total || 0),
-        0,
-      );
-
       const docketRows = manualDockets
         .map((md) => {
           const mdTotal = Number(md.driver_total || 0);
@@ -822,6 +815,9 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         })
         .join("");
 
+      // Calculate totals of manual dockets (single declaration — the earlier
+      // duplicate `const manualDocketTotal` block was removed, which was the
+      // cause of the SyntaxError)
       const manualDocketTotal = manualDockets.reduce(
         (sum, md) => sum + Number(md.driver_total || 0),
         0,
