@@ -1788,6 +1788,30 @@ export async function redraftInvoiceService(invoiceId) {
           );
         });
 
+        let adjustedTotal = total;
+        let lastJobAdjustment = null;
+
+        if (selectedJobs.length) {
+          const lastJob = selectedJobs[selectedJobs.length - 1];
+          const diff = weeklyTarget - total; // could be + or -
+          const oldDriverTotal = Number(lastJob.driver_total ?? 0);
+          const newDriverTotal = oldDriverTotal + diff;
+
+          lastJobAdjustment = {
+            jobId: lastJob.id,
+            oldDriverTotal,
+            newDriverTotal,
+          };
+
+          // Mutate in-memory so downstream financials use the corrected total
+          lastJob.driver_total = newDriverTotal;
+          adjustedTotal = weeklyTarget;
+
+          console.log(
+            `[REDRAFT] Adjusting last job ${lastJob.id} driver_total: £${oldDriverTotal} → £${newDriverTotal} (diff £${diff}) to hit target £${weeklyTarget}`,
+          );
+        }
+
         // 7. Calculate amounts
         const financials = calculateInvoiceFinancials(driver, total);
 
@@ -1894,13 +1918,19 @@ export async function redraftInvoiceService(invoiceId) {
             vat: financials.vat,
             carried_forward_total: financials.carried_forward_total,
             carry_forward_admin_fee: driver.carry_forward_admin_fee,
-            carry_forward_admin_vat_percent: driver.carry_forward_admin_vat_percent,
-            carry_forward_vehicle_hire_charge: driver.carry_forward_vehicle_hire_charge,
-            carry_forward_vehicle_vat_percent: driver.carry_forward_vehicle_vat_percent,
-            carry_forward_insurance_charge: driver.carry_forward_insurance_charge,
-            carry_forward_insurance_vat_percent: driver.carry_forward_insurance_vat_percent,
+            carry_forward_admin_vat_percent:
+              driver.carry_forward_admin_vat_percent,
+            carry_forward_vehicle_hire_charge:
+              driver.carry_forward_vehicle_hire_charge,
+            carry_forward_vehicle_vat_percent:
+              driver.carry_forward_vehicle_vat_percent,
+            carry_forward_insurance_charge:
+              driver.carry_forward_insurance_charge,
+            carry_forward_insurance_vat_percent:
+              driver.carry_forward_insurance_vat_percent,
             carry_forward_fuel_charge: driver.carry_forward_fuel_charge,
-            carry_forward_fuel_vat_percent: driver.carry_forward_fuel_vat_percent,
+            carry_forward_fuel_vat_percent:
+              driver.carry_forward_fuel_vat_percent,
             current_week_deductions: financials.current_week_deductions,
             status: "DRAFT",
             total_deductions: financials.total_deductions,
@@ -1924,7 +1954,7 @@ export async function redraftInvoiceService(invoiceId) {
             carry_forward_fuel_charge: 0,
             carry_forward_fuel_vat_percent: 0,
           },
-        })
+        });
 
         return {
           success: true,
