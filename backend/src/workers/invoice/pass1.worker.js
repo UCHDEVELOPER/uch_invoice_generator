@@ -17,7 +17,7 @@ import { selectJobsWithinTolerance } from "./weeklyInvoice.selector.js";
 import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
 import { getGeneratedId } from "../../utils/getGeneratedId.js";
-
+import { getWeekRangeFromDate } from "./findPendingWeeks.js";
 
 async function fetchPass1Drivers() {
   return prisma.driver.findMany({
@@ -57,6 +57,34 @@ export async function runPass1({ start, end }) {
     if (maxWeight === null || maxWeight === undefined) {
       console.log(
         `[PASS1] Skipping driver ${driver.call_sign} — no max_weight on position`,
+      );
+      continue;
+    }
+
+    const latestJob = await prisma.job.findFirst({
+      where: {
+        driver_id: driver.id,
+        is_invoiced: false,
+        date_time: { not: null },
+      },
+      orderBy: { date_time: "desc" },
+      select: { date_time: true },
+    });
+
+    if (!latestJob) {
+      console.log(
+        `[PASSx] Driver ${driver.call_sign} — no uninvoiced jobs at all, skipping`,
+      );
+      continue;
+    }
+
+    const { start: latestWeekStart } = getWeekRangeFromDate(
+      latestJob.date_time,
+    );
+
+    if (latestWeekStart.getTime() !== start.getTime()) {
+      console.log(
+        `[PASS1] Driver ${driver.call_sign} — week ${start.toISOString()} is stale backlog (their latest activity is week ${latestWeekStart.toISOString()}), skipping`,
       );
       continue;
     }
@@ -220,15 +248,21 @@ export async function runPass1({ start, end }) {
           status: "DRAFT",
           old_per_hour_rate: driver.per_hour_rate,
           old_total_hours: driver.total_hours,
-          
-          carry_forward_admin_fee: driver.carry_forward_admin_fee || 0 ,
-          carry_forward_admin_vat_percent: driver.carry_forward_admin_vat_percent || 0 ,
-          carry_forward_vehicle_hire_charge: driver.carry_forward_vehicle_hire_charge || 0 ,
-          carry_forward_vehicle_vat_percent: driver.carry_forward_vehicle_vat_percent || 0 ,
-          carry_forward_insurance_charge: driver.carry_forward_insurance_charge || 0 ,
-          carry_forward_insurance_vat_percent: driver.carry_forward_insurance_vat_percent || 0 ,
+
+          carry_forward_admin_fee: driver.carry_forward_admin_fee || 0,
+          carry_forward_admin_vat_percent:
+            driver.carry_forward_admin_vat_percent || 0,
+          carry_forward_vehicle_hire_charge:
+            driver.carry_forward_vehicle_hire_charge || 0,
+          carry_forward_vehicle_vat_percent:
+            driver.carry_forward_vehicle_vat_percent || 0,
+          carry_forward_insurance_charge:
+            driver.carry_forward_insurance_charge || 0,
+          carry_forward_insurance_vat_percent:
+            driver.carry_forward_insurance_vat_percent || 0,
           carry_forward_fuel_charge: driver.carry_forward_fuel_charge || 0,
-          carry_forward_fuel_vat_percent: driver.carry_forward_fuel_vat_percent || 0,
+          carry_forward_fuel_vat_percent:
+            driver.carry_forward_fuel_vat_percent || 0,
         },
       });
 

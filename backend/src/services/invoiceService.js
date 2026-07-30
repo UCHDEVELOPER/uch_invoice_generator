@@ -312,10 +312,9 @@ export async function generateWeeklyInvoice(payload) {
 
   const nextId = await getGeneratedId("main");
 
-  console.log('===================================');
+  console.log("===================================");
   console.log(nextId);
-  console.log('===================================');
-
+  console.log("===================================");
 
   if (!weeklyTarget || weeklyTarget === 0) {
     // No target configured - include all available jobs
@@ -1561,16 +1560,16 @@ export async function generateDetailedInvoiceSummaryService(
         driver: true,
         jobs: true,
       },
-    orderBy: [
-      {
-        start_date: "asc",
-      },
-      {
-        driver: {
-          name: "asc",
+      orderBy: [
+        {
+          start_date: "asc",
         },
-      },
-    ],
+        {
+          driver: {
+            name: "asc",
+          },
+        },
+      ],
     });
 
     if (invoices.length === 0) {
@@ -1894,6 +1893,14 @@ export async function redraftInvoiceService(invoiceId) {
             additional_charges: 0,
             vat: financials.vat,
             carried_forward_total: financials.carried_forward_total,
+            carry_forward_admin_fee: driver.carry_forward_admin_fee,
+            carry_forward_admin_vat_percent: driver.carry_forward_admin_vat_percent,
+            carry_forward_vehicle_hire_charge: driver.carry_forward_vehicle_hire_charge,
+            carry_forward_vehicle_vat_percent: driver.carry_forward_vehicle_vat_percent,
+            carry_forward_insurance_charge: driver.carry_forward_insurance_charge,
+            carry_forward_insurance_vat_percent: driver.carry_forward_insurance_vat_percent,
+            carry_forward_fuel_charge: driver.carry_forward_fuel_charge,
+            carry_forward_fuel_vat_percent: driver.carry_forward_fuel_vat_percent,
             current_week_deductions: financials.current_week_deductions,
             status: "DRAFT",
             total_deductions: financials.total_deductions,
@@ -1903,6 +1910,21 @@ export async function redraftInvoiceService(invoiceId) {
             old_total_days: driver.total_days,
           },
         });
+
+        // Update Driver Carry Forward Charges to 0 after redraft
+        await tx.driver.update({
+          where: { id: driver.id },
+          data: {
+            carry_forward_admin_fee: 0,
+            carry_forward_admin_vat_percent: 0,
+            carry_forward_vehicle_hire_charge: 0,
+            carry_forward_vehicle_vat_percent: 0,
+            carry_forward_insurance_charge: 0,
+            carry_forward_insurance_vat_percent: 0,
+            carry_forward_fuel_charge: 0,
+            carry_forward_fuel_vat_percent: 0,
+          },
+        })
 
         return {
           success: true,
