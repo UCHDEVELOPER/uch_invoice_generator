@@ -1803,7 +1803,7 @@ export async function redraftInvoiceService(invoiceId) {
             newDriverTotal,
           };
 
-          // Mutate in-memory so downstream financials use the corrected total
+          // Mutate in-memory so downstream financials use the corrected tota
           lastJob.driver_total = newDriverTotal;
           adjustedTotal = weeklyTarget;
 
