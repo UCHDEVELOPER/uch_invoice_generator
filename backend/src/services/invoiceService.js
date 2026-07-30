@@ -1788,30 +1788,6 @@ export async function redraftInvoiceService(invoiceId) {
           );
         });
 
-        let adjustedTotal = total;
-        let lastJobAdjustment = null;
-
-        if (selectedJobs.length) {
-          const lastJob = selectedJobs[selectedJobs.length - 1];
-          const diff = weeklyTarget - total; // could be + or -
-          const oldDriverTotal = Number(lastJob.driver_total ?? 0);
-          const newDriverTotal = oldDriverTotal + diff;
-
-          lastJobAdjustment = {
-            jobId: lastJob.id,
-            oldDriverTotal,
-            newDriverTotal,
-          };
-
-          // Mutate in-memory so downstream financials use the corrected tota
-          lastJob.driver_total = newDriverTotal;
-          adjustedTotal = weeklyTarget;
-
-          console.log(
-            `[REDRAFT] Adjusting last job ${lastJob.id} driver_total: £${oldDriverTotal} → £${newDriverTotal} (diff £${diff}) to hit target £${weeklyTarget}`,
-          );
-        }
-
         // 7. Calculate amounts
         const financials = calculateInvoiceFinancials(driver, total);
 
