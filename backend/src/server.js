@@ -34,6 +34,8 @@ app.get("/test", function (req, res) {
   return res.json("HI Connection Done");
 });
 
+// Comment For testing CI/CD Pipeline
+
 app.use("/public", express.static(path.join(process.cwd(), "src/public")));
 
 app.use("/", mainRoutes);
