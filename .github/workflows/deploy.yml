@@ -1,0 +1,43 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          cd /var/www/html
+
+          echo "Pull latest code..."
+          git fetch origin
+          git reset --hard origin/main
+
+          echo "Backend..."
+
+          cd backend
+
+          npm install
+
+          pm2 restart backend
+          pm2 restart worker
+
+          echo "Frontend..."
+
+          cd ../frontend
+
+          rm -rf .next
+
+          npm install
+
+          npm run build
+
+          pm2 restart frontend
