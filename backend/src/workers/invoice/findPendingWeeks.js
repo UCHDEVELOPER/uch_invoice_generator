@@ -4,7 +4,7 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 
 const TIMEZONE = "Europe/London";
 
-function getWeekRangeFromDate(utcDate) {
+export function getWeekRangeFromDate(utcDate) {
   const ukDate = toZonedTime(utcDate, TIMEZONE);
 
   const dayOfWeek = ukDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
