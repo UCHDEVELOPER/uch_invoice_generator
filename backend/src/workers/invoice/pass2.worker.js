@@ -59,33 +59,33 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
       continue;
     }
 
-        const latestJob = await prisma.job.findFirst({
-          where: {
-            driver_id: driver.id,
-            is_invoiced: false,
-            date_time: { not: null },
-          },
-          orderBy: { date_time: "desc" },
-          select: { date_time: true },
-        });
+        // const latestJob = await prisma.job.findFirst({
+        //   where: {
+        //     driver_id: driver.id,
+        //     is_invoiced: false,
+        //     date_time: { not: null },
+        //   },
+        //   orderBy: { date_time: "desc" },
+        //   select: { date_time: true },
+        // });
     
-        if (!latestJob) {
-          console.log(
-            `[PASSx] Driver ${driver.call_sign} — no uninvoiced jobs at all, skipping`,
-          );
-          continue;
-        }
+        // if (!latestJob) {
+        //   console.log(
+        //     `[PASSx] Driver ${driver.call_sign} — no uninvoiced jobs at all, skipping`,
+        //   );
+        //   continue;
+        // }
     
-        const { start: latestWeekStart } = getWeekRangeFromDate(
-          latestJob.date_time,
-        );
+        // const { start: latestWeekStart } = getWeekRangeFromDate(
+        //   latestJob.date_time,
+        // );
     
-        if (latestWeekStart.getTime() !== start.getTime()) {
-          console.log(
-            `[PASS1] Driver ${driver.call_sign} — week ${start.toISOString()} is stale backlog (their latest activity is week ${latestWeekStart.toISOString()}), skipping`,
-          );
-          continue;
-        }
+        // if (latestWeekStart.getTime() !== start.getTime()) {
+        //   console.log(
+        //     `[PASS1] Driver ${driver.call_sign} — week ${start.toISOString()} is stale backlog (their latest activity is week ${latestWeekStart.toISOString()}), skipping`,
+        //   );
+        //   continue;
+        // }
 
 
     // ── Guard: invoice already exists ────────────────────────────────────
