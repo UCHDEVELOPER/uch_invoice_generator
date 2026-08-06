@@ -1646,9 +1646,359 @@ export async function generateDetailedInvoiceSummaryService(
   }
 }
 
+// export async function redraftInvoiceService(invoiceId) {
+//   console.log(`[REDRAFT] Starting redraft for invoice ${invoiceId}`);
+
+//   try {
+//     const result = await prisma.$transaction(
+//       async (tx) => {
+//         // 1. Fetch invoice with driver
+//         const invoice = await tx.invoice.findUnique({
+//           where: { id: invoiceId },
+//           include: {
+//             driver: {
+//               include: {
+//                 driver_position: {
+//                   select: {
+//                     id: true,
+//                     label: true,
+//                     max_weight: true,
+//                   },
+//                 },
+//               },
+//             },
+//           },
+//         });
+
+//         if (!invoice) {
+//           return {
+//             success: false,
+//             statusCode: 404,
+//             message: `Invoice with ID ${invoiceId} not found`,
+//             data: null,
+//           };
+//         }
+
+//         const driver = invoice.driver;
+//         if (!driver) {
+//           return {
+//             success: false,
+//             statusCode: 400,
+//             message: `Driver not found for invoice ${invoiceId}`,
+//             data: null,
+//           };
+//         }
+
+//         const maxWeight = driver.driver_position?.max_weight;
+
+//         const hasHourlyConfig = driver.per_hour_rate && driver.total_hours;
+//         const hasFixedConfig = driver.weekly_fixed_rate && driver.total_days;
+
+//         if (!hasHourlyConfig && !hasFixedConfig) {
+//           return {
+//             success: false,
+//             statusCode: 400,
+//             message: `Driver ${driver.name} is missing required rate configuration`,
+//             data: {
+//               driverId: driver.id,
+//               driverName: driver.name,
+//               hasHourlyRate: !!driver.per_hour_rate,
+//               hasTotalHours: !!driver.total_hours,
+//               hasWeeklyFixedRate: !!driver.weekly_fixed_rate,
+//               hasTotalDays: !!driver.total_days,
+//             },
+//           };
+//         }
+
+//         // 2. Count jobs to detach (for return data)
+//         const detachedJobCount = await tx.job.count({
+//           where: {
+//             invoice_id: invoiceId,
+//             is_invoiced: true,
+//           },
+//         });
+
+//         // 3. BATCH UPDATE - Detach all jobs at once (instead of loop)
+//         if (detachedJobCount > 0) {
+//           await tx.job.updateMany({
+//             where: {
+//               invoice_id: invoiceId,
+//               is_invoiced: true,
+//             },
+//             data: {
+//               invoice_id: null,
+//               is_invoiced: false,
+//             },
+//           });
+//         }
+
+//         // 4. Calculate weekly target
+//         const weeklyTarget = calculateWeeklyTarget(driver);
+
+//         if (weeklyTarget <= 0) {
+//           return {
+//             success: false,
+//             statusCode: 400,
+//             message: `Invalid weekly target calculated: ${weeklyTarget}`,
+//             data: {
+//               weeklyTarget,
+//               driverConfig: {
+//                 per_hour_rate: driver.per_hour_rate,
+//                 total_hours: driver.total_hours,
+//                 weekly_fixed_rate: driver.weekly_fixed_rate,
+//                 total_days: driver.total_days,
+//               },
+//             },
+//           };
+//         }
+
+//         // 5. Find available jobs
+//         const availableJobs = await tx.job.findMany({
+//           where: {
+//             driver_id: driver.id,
+//             is_invoiced: false,
+//             date_time: {
+//               gte: invoice.start_date,
+//               lte: invoice.end_date,
+//             },
+//             weight: { gte: 0, lte: maxWeight },
+//           },
+//           orderBy: {
+//             date_time: "asc",
+//           },
+//         });
+
+//         // 6. Select jobs (this is synchronous, no DB call)
+//         const { selectedJobs, total } = selectJobsWithinTolerance(
+//           availableJobs,
+//           weeklyTarget,
+//           1000,
+//         );
+
+//         // Availbale and selected jobs weights
+//         availableJobs.forEach((job) => {
+//           console.log(
+//             `Available job: ${job.id} - ${job.weight} - ${job.date_time}`,
+//           );
+//         });
+
+//         selectedJobs.forEach((job) => {
+//           console.log(
+//             `Selected job: ${job.id} - ${job.weight} - ${job.date_time}`,
+//           );
+//         });
+
+//         // 7. Calculate amounts
+//         const financials = calculateInvoiceFinancials(driver, total);
+
+//         // 8. Handle no jobs case
+//         if (!selectedJobs.length) {
+//           const resetInvoice = await tx.invoice.update({
+//             where: { id: invoiceId },
+//             data: {
+//               docket_total: 0,
+//               net_amount: 0,
+//               final_total: 0,
+//               total_number_of_dockets: 0,
+//               admin_fee: 0,
+//               vehicle_hire_charges: 0,
+//               insurance_charge: 0,
+//               fuel_charge: 0,
+//               additional_charges: 0,
+//               vat: 0,
+//               carried_forward_total: 0,
+//               current_week_deductions: 0,
+//               total_deductions: 0,
+//               old_per_hour_rate: driver.per_hour_rate,
+//               old_total_hours: driver.total_hours,
+//               old_weekly_fixed_rate: driver.weekly_fixed_rate,
+//               old_total_days: driver.total_days,
+//             },
+//           });
+
+//           return {
+//             success: true,
+//             statusCode: 200,
+//             message: `Invoice ${invoiceId} has been reset. No uninvoiced jobs found.`,
+//             data: {
+//               invoice: resetInvoice,
+//               jobsDetached: detachedJobCount,
+//               jobsAttached: 0,
+//               total: 0,
+//               weeklyTarget,
+//               remaining: weeklyTarget,
+//               period: {
+//                 start: invoice.start_date,
+//                 end: invoice.end_date,
+//               },
+//             },
+//           };
+//         }
+
+//         // 9. BATCH UPDATE - Attach jobs using updateMany with IDs
+//         const selectedJobIds = selectedJobs.map((job) => job.id);
+
+//         await tx.job.updateMany({
+//           where: {
+//             id: { in: selectedJobIds },
+//           },
+//           data: {
+//             is_invoiced: true,
+//             invoice_id: invoiceId,
+//             call_sign: driver.call_sign,
+//           },
+//         });
+
+//         // 10. Prepare history records (filter jobs that actually changed)
+//         const attachmentHistory = selectedJobs.flatMap((job) => {
+//           const changes = [];
+//           if (job.driver_id !== driver.id) {
+//             changes.push({
+//               job_id: job.id,
+//               field: "DRIVER_ID",
+//               old_value: job.driver_id,
+//               new_value: driver.id,
+//             });
+//           }
+//           if (job.call_sign !== driver.call_sign) {
+//             changes.push({
+//               job_id: job.id,
+//               field: "CALL_SIGN",
+//               old_value: job.call_sign,
+//               new_value: driver.call_sign,
+//             });
+//           }
+//           return changes;
+//         });
+
+//         // 11. Batch create history if needed
+//         if (attachmentHistory.length > 0) {
+//           await tx.jobChangeHistory.createMany({
+//             data: attachmentHistory,
+//           });
+//         }
+
+//         // 12. Update invoice
+//         const updatedInvoice = await tx.invoice.update({
+//           where: { id: invoiceId },
+//           data: {
+//             docket_total: total,
+//             net_amount: total,
+//             final_total: financials.final_total,
+//             total_number_of_dockets: selectedJobs.length,
+//             admin_fee: financials.admin_fee,
+//             vehicle_hire_charges: financials.vehicle_hire_charges,
+//             insurance_charge: financials.insurance_charge,
+//             fuel_charge: financials.fuel_charge,
+//             additional_charges: 0,
+//             vat: financials.vat,
+//             carried_forward_total: financials.carried_forward_total,
+//             carry_forward_admin_fee: driver.carry_forward_admin_fee,
+//             carry_forward_admin_vat_percent:
+//               driver.carry_forward_admin_vat_percent,
+//             carry_forward_vehicle_hire_charge:
+//               driver.carry_forward_vehicle_hire_charge,
+//             carry_forward_vehicle_vat_percent:
+//               driver.carry_forward_vehicle_vat_percent,
+//             carry_forward_insurance_charge:
+//               driver.carry_forward_insurance_charge,
+//             carry_forward_insurance_vat_percent:
+//               driver.carry_forward_insurance_vat_percent,
+//             carry_forward_fuel_charge: driver.carry_forward_fuel_charge,
+//             carry_forward_fuel_vat_percent:
+//               driver.carry_forward_fuel_vat_percent,
+//             current_week_deductions: financials.current_week_deductions,
+//             status: "DRAFT",
+//             total_deductions: financials.total_deductions,
+//             old_per_hour_rate: driver.per_hour_rate,
+//             old_total_hours: driver.total_hours,
+//             old_weekly_fixed_rate: driver.weekly_fixed_rate,
+//             old_total_days: driver.total_days,
+//           },
+//         });
+
+//         // Update Driver Carry Forward Charges to 0 after redraft
+//         await tx.driver.update({
+//           where: { id: driver.id },
+//           data: {
+//             carry_forward_admin_fee: 0,
+//             carry_forward_admin_vat_percent: 0,
+//             carry_forward_vehicle_hire_charge: 0,
+//             carry_forward_vehicle_vat_percent: 0,
+//             carry_forward_insurance_charge: 0,
+//             carry_forward_insurance_vat_percent: 0,
+//             carry_forward_fuel_charge: 0,
+//             carry_forward_fuel_vat_percent: 0,
+//           },
+//         });
+
+//         return {
+//           success: true,
+//           statusCode: 200,
+//           message: `Invoice ${invoiceId} has been successfully redrafted`,
+//           data: {
+//             invoice: updatedInvoice,
+//             jobsDetached: detachedJobCount,
+//             jobsAttached: selectedJobs.length,
+//             calculation: {
+//               docketTotal: total,
+//               deductions: {
+//                 adminFee: financials.admin_fee,
+//                 vehicleHireCharge: financials.vehicle_hire_charges,
+//                 insuranceCharge: financials.insurance_charge,
+//                 fuelCharge: financials.fuel_charge,
+//                 total: financials.total_deductions,
+//               },
+//               // netAmount : financials.net_amount,
+//               vat: financials.total_vat_percent,
+//               // finalTotal,
+//             },
+//             target: {
+//               weeklyTarget,
+//               achieved: total,
+//               remaining: weeklyTarget - total,
+//               percentageAchieved:
+//                 weeklyTarget > 0
+//                   ? ((total / weeklyTarget) * 100).toFixed(2)
+//                   : "0.00",
+//             },
+//             period: {
+//               start: invoice.start_date,
+//               end: invoice.end_date,
+//             },
+//           },
+//         };
+//       },
+//       {
+//         maxWait: 10000, // Max time to wait for transaction to start
+//         timeout: 30000, // Max time for transaction to complete
+//       },
+//     );
+
+//     // Move logging OUTSIDE the transaction
+//     console.log(`[REDRAFT] Completed for invoice ${invoiceId}:`, {
+//       jobsDetached: result.data?.jobsDetached,
+//       jobsAttached: result.data?.jobsAttached,
+//       finalTotal: result.data?.calculation?.finalTotal,
+//     });
+
+//     return result;
+//   } catch (error) {
+//     console.error(`[REDRAFT] Error redrafting invoice ${invoiceId}:`, error);
+//     return {
+//       success: false,
+//       statusCode: 500,
+//       message: `Failed to redraft invoice: ${error.message}`,
+//       data: {
+//         error: error.message,
+//         stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+//       },
+//     };
+//   }
+// }
+
 export async function redraftInvoiceService(invoiceId) {
   console.log(`[REDRAFT] Starting redraft for invoice ${invoiceId}`);
-
   try {
     const result = await prisma.$transaction(
       async (tx) => {
@@ -1769,13 +2119,12 @@ export async function redraftInvoiceService(invoiceId) {
         });
 
         // 6. Select jobs (this is synchronous, no DB call)
-        const { selectedJobs, total } = selectJobsWithinTolerance(
+        const { selectedJobs, total: rawTotal } = selectJobsWithinTolerance(
           availableJobs,
           weeklyTarget,
           1000,
         );
 
-        // Availbale and selected jobs weights
         availableJobs.forEach((job) => {
           console.log(
             `Available job: ${job.id} - ${job.weight} - ${job.date_time}`,
@@ -1787,6 +2136,45 @@ export async function redraftInvoiceService(invoiceId) {
             `Selected job: ${job.id} - ${job.weight} - ${job.date_time}`,
           );
         });
+
+        // 6a. RECONCILE: force the selected jobs to sum to EXACTLY weeklyTarget
+        // by absorbing the shortfall/overshoot into the last selected job's
+        // driver_total (NOT weight — weight is the physical capacity field
+        // used for the max_weight filter and must stay untouched).
+        // This is what makes the docket total track the driver's rate config
+        // (and any changes to it) exactly, instead of drifting within the
+        // selectJobsWithinTolerance band.
+        let total = rawTotal;
+        let adjustedLastJob = null;
+
+        if (selectedJobs.length && rawTotal !== weeklyTarget) {
+          const diff = weeklyTarget - rawTotal; // +ve = need to add, -ve = need to subtract
+          const lastJob = selectedJobs[selectedJobs.length - 1];
+          const currentDriverTotal = lastJob.driver_total ?? 0;
+          const newDriverTotal = currentDriverTotal + diff;
+
+          // Guard: don't let the adjustment push the last docket negative.
+          if (newDriverTotal < 0) {
+            console.warn(
+              `[REDRAFT] Cannot reconcile invoice ${invoiceId} exactly — ` +
+                `adjustment of ${diff} on job ${lastJob.id} (driver_total ${currentDriverTotal}) ` +
+                `would go negative. Falling back to raw total ${rawTotal}.`,
+            );
+          } else {
+            adjustedLastJob = {
+              id: lastJob.id,
+              originalDriverTotal: currentDriverTotal,
+              newDriverTotal,
+              diff,
+            };
+            lastJob.driver_total = newDriverTotal; // mutate in-memory copy so downstream logic sees the corrected value
+            total = weeklyTarget;
+
+            console.log(
+              `[REDRAFT] Reconciled job ${lastJob.id}: ${adjustedLastJob.originalDriverTotal} -> ${newDriverTotal} (diff ${diff}) to hit exact weeklyTarget ${weeklyTarget}`,
+            );
+          }
+        }
 
         // 7. Calculate amounts
         const financials = calculateInvoiceFinancials(driver, total);
@@ -1849,6 +2237,16 @@ export async function redraftInvoiceService(invoiceId) {
           },
         });
 
+        // 9a. Persist the reconciled driver_total on the last docket, if adjusted.
+        // Has to be a separate update since updateMany can't set a
+        // per-row-differing value.
+        if (adjustedLastJob) {
+          await tx.job.update({
+            where: { id: adjustedLastJob.id },
+            data: { driver_total: adjustedLastJob.newDriverTotal },
+          });
+        }
+
         // 10. Prepare history records (filter jobs that actually changed)
         const attachmentHistory = selectedJobs.flatMap((job) => {
           const changes = [];
@@ -1870,6 +2268,22 @@ export async function redraftInvoiceService(invoiceId) {
           }
           return changes;
         });
+
+        // 10a. History record for the reconciliation driver_total adjustment.
+        // NOTE: commented out for now — your JobChangeField enum threw
+        // "Invalid value for argument `field`. Expected JobChangeField." on
+        // "WEIGHT", so it likely doesn't have a DOCKET_TOTAL value either.
+        // Check your schema.prisma enum and either add a value for this
+        // (e.g. DOCKET_TOTAL) and migrate, or swap the string below to an
+        // existing enum value, then uncomment.
+        // if (adjustedLastJob) {
+        //   attachmentHistory.push({
+        //     job_id: adjustedLastJob.id,
+        //     field: "DOCKET_TOTAL",
+        //     old_value: adjustedLastJob.originalDriverTotal,
+        //     new_value: adjustedLastJob.newDriverTotal,
+        //   });
+        // }
 
         // 11. Batch create history if needed
         if (attachmentHistory.length > 0) {
@@ -1953,6 +2367,14 @@ export async function redraftInvoiceService(invoiceId) {
               vat: financials.total_vat_percent,
               // finalTotal,
             },
+            reconciliation: adjustedLastJob
+              ? {
+                  jobId: adjustedLastJob.id,
+                  originalDriverTotal: adjustedLastJob.originalDriverTotal,
+                  adjustedDriverTotal: adjustedLastJob.newDriverTotal,
+                  diff: adjustedLastJob.diff,
+                }
+              : null,
             target: {
               weeklyTarget,
               achieved: total,
@@ -1980,6 +2402,7 @@ export async function redraftInvoiceService(invoiceId) {
       jobsDetached: result.data?.jobsDetached,
       jobsAttached: result.data?.jobsAttached,
       finalTotal: result.data?.calculation?.finalTotal,
+      reconciliation: result.data?.reconciliation,
     });
 
     return result;
