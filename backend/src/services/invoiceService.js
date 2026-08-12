@@ -2570,6 +2570,7 @@ export async function redraftInvoiceService(invoiceId) {
           is_invoiced: false,
           date_time: { gte: invoice.start_date, lte: invoice.end_date },
           weight: { gte: 0, lte: maxWeight },
+          driver_total : { gte: 0 },
         },
         orderBy: { date_time: "asc" },
       });
