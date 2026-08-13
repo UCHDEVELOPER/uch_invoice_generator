@@ -87,7 +87,9 @@ async function initBrowser() {
     if (!browserInstance || !browserInstance.isConnected()) {
       browserInstance = await puppeteer.launch({
         executablePath: "/snap/bin/chromium",
-        headless: "new",
+        headless: true,
+        dumpio: true,
+        timeout: 60000,
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
