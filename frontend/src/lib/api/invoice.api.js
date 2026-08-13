@@ -50,3 +50,6 @@ export const generateCollectiveInvoiceSummary = (data) =>
 
 export const generateCollectiveDetailedInvoiceSummary = (data) =>
   api.post("/invoice/generate-collective-detailed-invoice-summary", data);
+
+export const bulkRegenerateInvoice = (data) =>
+  api.post("/invoice/bulk-regenerate-invoice", data);

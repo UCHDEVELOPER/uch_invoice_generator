@@ -15,6 +15,7 @@ import {
   generateCollectiveBankRemittanceService,
   generateCollectiveInvoiceSummaryService,
   generateCollectiveDetailedInvoiceSummaryService,
+  bulkRedraftInvoiceService,
 } from "../services/invoiceService.js";
 import { generateBankRemittancePdf } from "../utils/generateBankRemittancePdf.js";
 import { buildUkRange, parseLocalDate } from "../utils/parseUserDate.js";
@@ -498,6 +499,39 @@ export async function generateCollectiveDetailedInvoiceSummary(req, res) {
       success: false,
       statusCode: 500,
       message: err.message,
+    });
+  }
+}
+
+export async function bulkRedraftInvoice(req, res) {
+  try {
+    const { invoiceIds } = req.body;
+
+    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice IDs are required",
+      });
+    }
+
+    const invalidIds = invoiceIds.filter((id) => !validateObjectId(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: `Invalid invoice ID format: ${invalidIds.join(", ")}`,
+      });
+    }
+
+    const result = await bulkRedraftInvoiceService(invoiceIds);
+
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message,
     });
   }
 }
