@@ -1646,115 +1646,190 @@ export async function generateDetailedInvoiceSummaryService(
   }
 }
 
+
 export async function redraftInvoiceService(invoiceId) {
   console.log(`[REDRAFT] Starting redraft for invoice ${invoiceId}`);
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Fetch Invoice and Driver
-      const invoice = await tx.invoice.findUnique({
-        where: { id: invoiceId },
-        include: {
-          driver: {
-            include: { driver_position: { select: { max_weight: true } } },
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const invoice = await tx.invoice.findUnique({
+          where: {
+            id: invoiceId,
           },
-        },
-      });
-
-      if (!invoice || !invoice.driver) throw new Error("Invoice or Driver not found");
-
-      const driver = invoice.driver;
-      
-      const weeklyTarget = calculateWeeklyTarget(driver); // Your fixed rate (e.g. 1000)
-      const maxWeight = driver.driver_position?.max_weight || 999999;
-
-      // 2. DETACH current jobs first so they become "available" again
-      await tx.job.updateMany({
-        where: { invoice_id: invoiceId },
-        data: { invoice_id: null, is_invoiced: false },
-      });
-
-      // 3. CALCULATE EXACT DEDUCTIONS (Including Carry Forwards)
-      // We run the financial function with 0 docket total just to see the fixed costs/VAT/CFs
-      const preliminary = calculateInvoiceFinancials(driver, 0);
-      const totalDeductions = Number(preliminary.total_deductions.toFixed(2));
-
-      // This is the Gross Docket Total we MUST hit to pay the driver exactly their weeklyTarget
-      const requiredDocketTotal = Number((weeklyTarget + totalDeductions).toFixed(2));
-
-      console.log(`[REDRAFT] Target Net: ${weeklyTarget}, Required Gross: ${requiredDocketTotal}`);
-
-      // 4. FIND ALL AVAILABLE JOBS (Specific week, specific driver, specific weight)
-      const availableJobs = await tx.job.findMany({
-        where: {
-          is_invoiced: false,
-          date_time: { gte: invoice.start_date, lte: invoice.end_date },
-          weight: { gte: 0, lte: maxWeight },
-          driver_total : { gte: 0 },
-        },
-        orderBy: { date_time: "asc" },
-      });
-
-      // 5. GREEDY SELECTION LOOP
-      let selectedJobs = [];
-      let runningGross = 0;
-
-      for (const job of availableJobs) {
-        selectedJobs.push(job);
-        runningGross = Number((runningGross + Number(job.driver_total || 0)).toFixed(2));
-        
-        // Stop the moment we hit or exceed the target
-        if (runningGross >= requiredDocketTotal) break;
-      }
-
-      if (selectedJobs.length === 0) return await resetInvoice(tx, invoiceId);
-
-      // 6. THE ADJUSTMENT (Deduction Only)
-      // If we are over (e.g., jobs sum to 2866.20 but we only need 2838.00)
-      const overshoot = Number((runningGross - requiredDocketTotal).toFixed(2));
-
-      if (overshoot > 0) {
-        const lastJob = selectedJobs[selectedJobs.length - 1];
-        const originalVal = Number(lastJob.driver_total || 0);
-        const newVal = Number((originalVal - overshoot).toFixed(2));
-
-        // Update the actual job in the database
-        await tx.job.update({
-          where: { id: lastJob.id },
-          data: { driver_total: newVal }
+          include: {
+            driver: {
+              include: {
+                driver_position: {
+                  select: {
+                    max_weight: true,
+                  },
+                },
+              },
+            },
+          },
         });
-        
-        runningGross = requiredDocketTotal;
-        console.log(`[REDRAFT] Deducted ${overshoot} from job ${lastJob.id} to match target.`);
-      }
 
-      // 7. FINAL CALCULATIONS
-      const finalFinancials = calculateInvoiceFinancials(driver, runningGross);
+        if (!invoice || !invoice.driver) {
+          throw new Error("Invoice or Driver not found");
+        }
 
-      // 8. ATTACH JOBS
-      await tx.job.updateMany({
-        where: { id: { in: selectedJobs.map(j => j.id) } },
-        data: { is_invoiced: true, invoice_id: invoiceId, call_sign: driver.call_sign },
-      });
+        const driver = invoice.driver;
+        const weeklyTarget = calculateWeeklyTarget(driver);
+        const maxWeight = driver.driver_position?.max_weight || 999999;
 
-      // 9. UPDATE INVOICE
-      const updatedInvoice = await tx.invoice.update({
-        where: { id: invoiceId },
-        data: {
-          docket_total: runningGross,
-          net_amount: runningGross,
-          final_total: finalFinancials.final_total, // This will now match weeklyTarget
-          total_number_of_dockets: selectedJobs.length,
-          admin_fee: finalFinancials.admin_fee,
-          vehicle_hire_charges: finalFinancials.vehicle_hire_charges,
-          insurance_charge: finalFinancials.insurance_charge,
-          fuel_charge: finalFinancials.fuel_charge,
-          vat: finalFinancials.vat,
-          total_deductions: finalFinancials.total_deductions,
-          carried_forward_total: finalFinancials.carried_forward_total,
-          status: "DRAFT",
-          // Capture carry forwards before clearing driver
-            carry_forward_admin_fee: driver.carry_forward_admin_fee,
+        await tx.job.updateMany({
+          where: {
+            invoice_id: invoiceId,
+            driver_id: driver.id,
+            driver_total: 0,
+          },
+          data: {
+            driver_id: null,
+            invoice_id: null,
+            is_invoiced: false,
+            call_sign: null,
+            is_carry_forward_processed: false,
+          },
+        });
+
+        await tx.job.updateMany({
+          where: {
+            invoice_id: invoiceId,
+          },
+          data: {
+            invoice_id: null,
+            is_invoiced: false,
+          },
+        });
+
+        const preliminary = calculateInvoiceFinancials(driver, 0);
+
+        const totalDeductions = Number(
+          preliminary.total_deductions.toFixed(2)
+        );
+
+        const requiredDocketTotal = Number(
+          (weeklyTarget + totalDeductions).toFixed(2)
+        );
+
+        const availableJobs = await tx.job.findMany({
+          where: {
+            is_invoiced: false,
+            date_time: {
+              gte: invoice.start_date,
+              lte: invoice.end_date,
+            },
+            weight: {
+              gte: 0,
+              lte: maxWeight,
+            },
+            driver_total: {
+              gt: 0,
+            },
+          },
+          orderBy: {
+            date_time: "asc",
+          },
+        });
+
+        const selectedJobs = [];
+        let runningGross = 0;
+
+        for (const job of availableJobs) {
+          selectedJobs.push(job);
+
+          runningGross = Number(
+            (
+              runningGross +
+              Number(job.driver_total || 0)
+            ).toFixed(2)
+          );
+
+          if (runningGross >= requiredDocketTotal) {
+            break;
+          }
+        }
+
+        if (selectedJobs.length === 0) {
+          return await resetInvoice(tx, invoiceId);
+        }
+
+        const overshoot = Number(
+          (runningGross - requiredDocketTotal).toFixed(2)
+        );
+
+        if (overshoot > 0) {
+          const lastJob =
+            selectedJobs[selectedJobs.length - 1];
+
+          const originalValue = Number(
+            lastJob.driver_total || 0
+          );
+
+          const newValue = Number(
+            (originalValue - overshoot).toFixed(2)
+          );
+
+          if (newValue < 0) {
+            throw new Error(
+              `Invalid driver_total adjustment for job ${lastJob.id}`
+            );
+          }
+
+          await tx.job.update({
+            where: {
+              id: lastJob.id,
+            },
+            data: {
+              driver_total: newValue,
+            },
+          });
+
+          runningGross = requiredDocketTotal;
+        }
+
+        const finalFinancials = calculateInvoiceFinancials(
+          driver,
+          runningGross
+        );
+
+        await tx.job.updateMany({
+          where: {
+            id: {
+              in: selectedJobs.map((job) => job.id),
+            },
+          },
+          data: {
+            is_invoiced: true,
+            invoice_id: invoiceId,
+            call_sign: driver.call_sign,
+          },
+        });
+
+        const updatedInvoice = await tx.invoice.update({
+          where: {
+            id: invoiceId,
+          },
+          data: {
+            docket_total: runningGross,
+            net_amount: runningGross,
+            final_total: finalFinancials.final_total,
+            total_number_of_dockets: selectedJobs.length,
+            admin_fee: finalFinancials.admin_fee,
+            vehicle_hire_charges:
+              finalFinancials.vehicle_hire_charges,
+            insurance_charge:
+              finalFinancials.insurance_charge,
+            fuel_charge: finalFinancials.fuel_charge,
+            vat: finalFinancials.vat,
+            total_deductions:
+              finalFinancials.total_deductions,
+            carried_forward_total:
+              finalFinancials.carried_forward_total,
+            status: "DRAFT",
+            carry_forward_admin_fee:
+              driver.carry_forward_admin_fee,
             carry_forward_admin_vat_percent:
               driver.carry_forward_admin_vat_percent,
             carry_forward_vehicle_hire_charge:
@@ -1765,17 +1840,18 @@ export async function redraftInvoiceService(invoiceId) {
               driver.carry_forward_insurance_charge,
             carry_forward_insurance_vat_percent:
               driver.carry_forward_insurance_vat_percent,
-            carry_forward_fuel_charge: driver.carry_forward_fuel_charge,
+            carry_forward_fuel_charge:
+              driver.carry_forward_fuel_charge,
             carry_forward_fuel_vat_percent:
               driver.carry_forward_fuel_vat_percent,
+          },
+        });
 
-        },
-      });
-
-      // 10. CLEAR DRIVER CARRY FORWARDS
-      await tx.driver.update({
-        where: { id: driver.id },
-        data: {
+        await tx.driver.update({
+          where: {
+            id: driver.id,
+          },
+          data: {
             carry_forward_admin_fee: 0,
             carry_forward_admin_vat_percent: 0,
             carry_forward_vehicle_hire_charge: 0,
@@ -1784,16 +1860,32 @@ export async function redraftInvoiceService(invoiceId) {
             carry_forward_insurance_vat_percent: 0,
             carry_forward_fuel_charge: 0,
             carry_forward_fuel_vat_percent: 0,
-        },
-      });
+          },
+        });
 
-      return { success: true, statusCode: 200, data: { invoice: updatedInvoice } };
-    }, { maxWait: 10000, timeout: 30000 });
+        return {
+          success: true,
+          statusCode: 200,
+          data: {
+            invoice: updatedInvoice,
+          },
+        };
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      }
+    );
 
     return result;
   } catch (error) {
     console.error(`[REDRAFT] Error:`, error);
-    return { success: false, statusCode: 500, message: error.message };
+
+    return {
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    };
   }
 }
 
