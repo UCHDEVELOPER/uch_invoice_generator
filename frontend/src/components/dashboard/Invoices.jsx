@@ -20,7 +20,8 @@ import {
   generateCollectiveInvoiceSummary,
   generateCollectiveBankRemittance,
   generateCollectiveDetailedInvoiceSummary,
-  bulkRegenerateInvoice
+  bulkRegenerateInvoice,
+  bulkGenerateFinalInvoice
 } from "@/lib/api/invoice.api";
 import Loader from "./Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -56,7 +57,8 @@ function Invoices() {
   // Only additional_charges is editable
   const [additionalCharges, setAdditionalCharges] = useState(0);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
-  
+  const [bulkFinalizing, setBulkFinalizing] = useState(false);
+
   // Date Range Modal states
   const [isBankRemittanceModalOpen, setIsBankRemittanceModalOpen] =
     useState(false);
@@ -190,6 +192,51 @@ function Invoices() {
       toast.error(error?.response?.data?.message || "Bulk update failed");
     } finally {
       setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkFinalizeInvoice = async () => {
+    if (selectedInvoices.length === 0) {
+      toast.error("Please select invoices to finalize");
+      return;
+    }
+    try {
+      setBulkFinalizing(true);
+      const response = await bulkGenerateFinalInvoice({
+        invoiceIds: selectedInvoices,
+      });
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+          `${selectedInvoices.length} invoice(s) finalized`,
+        );
+      } else {
+        const { successCount, failureCount, failed } =
+          response?.data?.data || {};
+        if (successCount > 0) {
+          toast.success(`${successCount} invoice(s) finalized`);
+        }
+        if (failureCount > 0) {
+          toast.error(
+            `${failureCount} invoice(s) failed to finalize` +
+            (failed?.[0]?.message ? `: ${failed[0].message}` : ""),
+          );
+        }
+        if (!successCount && !failureCount) {
+          toast.error(response?.data?.message || "Bulk finalize failed");
+        }
+      }
+
+      setSelectedInvoices([]);
+      setSelectAll(false);
+      fetchInvoicesData();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to finalize invoices",
+      );
+    } finally {
+      setBulkFinalizing(false);
     }
   };
 
@@ -1009,6 +1056,52 @@ function Invoices() {
               </button>
             )}
 
+            {selectedInvoices.length > 0 && (
+              <button
+                onClick={handleBulkFinalizeInvoice}
+                disabled={bulkFinalizing}
+                className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkFinalizing ? (
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-[15px] h-[15px]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+                Finalize ({selectedInvoices.length})
+              </button>
+            )}
+
             {/* Existing: Bank Remittance (regular drivers only) */}
             <button
               onClick={() => setIsBankRemittanceModalOpen(true)}
@@ -1336,8 +1429,8 @@ function Invoices() {
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={!pagination.hasPrevPage}
                 className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${!pagination.hasPrevPage
-                    ? "opacity-50 cursor-not-allowed border-[#22358114]"
-                    : "border-[#22358114] hover:border-secondary hover:bg-secondary"
+                  ? "opacity-50 cursor-not-allowed border-[#22358114]"
+                  : "border-[#22358114] hover:border-secondary hover:bg-secondary"
                   }`}
               >
                 <svg
@@ -1362,10 +1455,10 @@ function Invoices() {
                   }
                   disabled={page === "..."}
                   className={`inline-flex items-center justify-center px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 ${page === currentPage
-                      ? "border-primary bg-primary text-white"
-                      : page === "..."
-                        ? "border-transparent cursor-default"
-                        : "border-[#22358114] hover:border-primary text-[#515151] hover:text-primary"
+                    ? "border-primary bg-primary text-white"
+                    : page === "..."
+                      ? "border-transparent cursor-default"
+                      : "border-[#22358114] hover:border-primary text-[#515151] hover:text-primary"
                     }`}
                 >
                   {page}
@@ -1376,8 +1469,8 @@ function Invoices() {
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={!pagination.hasNextPage}
                 className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${!pagination.hasNextPage
-                    ? "opacity-50 cursor-not-allowed border-[#22358114]"
-                    : "border-[#22358114] hover:border-secondary hover:bg-secondary"
+                  ? "opacity-50 cursor-not-allowed border-[#22358114]"
+                  : "border-[#22358114] hover:border-secondary hover:bg-secondary"
                   }`}
               >
                 <svg

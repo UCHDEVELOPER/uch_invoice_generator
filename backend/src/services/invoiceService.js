@@ -2776,3 +2776,61 @@ export const generateCollectiveDetailedInvoiceSummaryService = async (
   const result = await generateDetailedInvoiceSummaryPdfFile(payload);
   return { success: true, statusCode: 200, data: result };
 };
+
+export async function bulkGenerateFinalInvoiceService(invoiceIds) {
+  const finalized = [];
+  const failed = [];
+
+  // Sequential on purpose — generateFinalInvoiceService can pull extra jobs
+  // from the shared unassigned pool to hit the weekly target, so running
+  // these in parallel risks two invoices racing for the same job.
+  for (const invoiceId of invoiceIds) {
+    try {
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+      });
+
+      if (!invoice) {
+        failed.push({ invoiceId, message: "Invoice not found" });
+        continue;
+      }
+
+      const result = await generateFinalInvoiceService({
+        invoice_id: invoiceId,
+        admin_fee: Number(invoice.admin_fee) || 0,
+        vehicle_hire_charges: Number(invoice.vehicle_hire_charges) || 0,
+        insurance_charge: Number(invoice.insurance_charge) || 0,
+        fuel_charge: Number(invoice.fuel_charge) || 0,
+        additional_charges: Number(invoice.additional_charges) || 0,
+        total_deduction: Number(invoice.total_deductions) || 0,
+      });
+
+      if (result.success) {
+        finalized.push({ invoiceId, data: result.data });
+      } else {
+        failed.push({ invoiceId, message: result.message });
+      }
+    } catch (error) {
+      failed.push({ invoiceId, message: error.message });
+    }
+  }
+
+  const statusCode =
+    failed.length === 0 ? 200 : finalized.length === 0 ? 500 : 207;
+
+  return {
+    success: failed.length === 0,
+    statusCode,
+    message:
+      failed.length === 0
+        ? `Successfully finalized ${finalized.length} invoice(s)`
+        : `Finalized ${finalized.length} invoice(s), ${failed.length} failed`,
+    data: {
+      total: invoiceIds.length,
+      successCount: finalized.length,
+      failureCount: failed.length,
+      finalized,
+      failed,
+    },
+  };
+}
