@@ -731,6 +731,7 @@ export async function deleteInvoiceService(invoiceId) {
  * - Result: final invoice matches required docket total
  */
 
+
 // export async function generateFinalInvoiceService(payload) {
 //   const {
 //     invoice_id,
@@ -822,96 +823,161 @@ export async function deleteInvoiceService(invoiceId) {
 //   const requiredDocketTotal = exactWeeklyRate + finalDeductionAmount;
 
 //   /**
-//    * Adjustment needed = how much to subtract from last job
+//    * Adjustment needed = how much to subtract from jobs
 //    * adjustment = currentJobsTotal - requiredDocketTotal
-//    *
-//    * Example:
-//    *   - currentJobsTotal = £250 (from selection with buffer)
-//    *   - requiredDocketTotal = £200 (target + deductions)
-//    *   - adjustment = £50 (need to subtract £50 from last job)
 //    */
-//   const adjustmentNeeded = currentJobsTotal - requiredDocketTotal;
-
-//   console.log(`[generateFinalInvoiceService] Invoice #${invoice_id}:`, {
-//     exactWeeklyRate,
-//     currentJobsTotal,
-//     requiredDocketTotal,
-//     finalDeductionAmount,
-//     adjustmentNeeded,
-//   });
+//   let adjustmentNeeded = currentJobsTotal - requiredDocketTotal;
 
 //   // ──────────────────────────────────────────────────────────────────────
-//   // Get the LAST job and calculate its new value
+//   // Cascade adjustment: Start from last job, skip jobs that would go to 0
 //   // ──────────────────────────────────────────────────────────────────────
 
-//   const lastJob = invoice.jobs[invoice.jobs.length - 1];
-//   const lastJobOldValue = Number(lastJob.driver_total ?? 0);
+//   const MIN_JOB_VALUE = 0.01; // Minimum value to keep a job
+//   const jobUpdates = []; // Track job value updates
+//   const jobsToExclude = []; // Track jobs to remove from invoice
 
-//   /**
-//    * Calculate new value for last job
-//    * newValue = oldValue - adjustmentNeeded
-//    *
-//    * Key: We SUBTRACT the adjustment (never add)
-//    * This requires the last job to have enough buffer (from tolerance)
-//    */
-//   let lastJobNewValue = lastJobOldValue - adjustmentNeeded;
+//   // Start from the last job and work backwards
+//   for (let i = invoice.jobs.length - 1; i >= 0 && adjustmentNeeded > 0; i--) {
+//     const currentJob = invoice.jobs[i];
+//     const currentJobOldValue = Number(currentJob.driver_total ?? 0);
 
-//   /**
-//    * Safety: Don't let last job go below 0
-//    */
-//   if (lastJobNewValue < 0) {
-//     console.warn(
-//       `[generateFinalInvoiceService] WARNING: Last job would be negative (£${lastJobNewValue}). Setting to 0.`,
+//     /**
+//      * Calculate what the job value would be after reduction
+//      */
+//     const potentialNewValue = currentJobOldValue - adjustmentNeeded;
+
+//     /**
+//      * Decision logic:
+//      * IF potentialNewValue < MIN_JOB_VALUE:
+//      *   → This job would go to 0 or negative
+//      *   → EXCLUDE this job from invoice (remove it)
+//      *   → Reduce adjustment by this job's full amount
+//      * ELSE:
+//      *   → Reduce this job by the adjustment amount
+//      *   → Set adjustment to 0 (we're done)
+//      */
+
+//     if (potentialNewValue < MIN_JOB_VALUE) {
+//       // Job would go to 0 - EXCLUDE it completely
+
+//       jobsToExclude.push({
+//         jobId: currentJob.id,
+//         oldValue: currentJobOldValue,
+//         reason: "Excluded from finalization",
+//       });
+
+//       // Reduce the adjustment by this job's full value
+//       adjustmentNeeded -= currentJobOldValue;
+
+//       if (adjustmentNeeded < 0) {
+//         adjustmentNeeded = 0; // Don't over-subtract
+//       }
+//     } else {
+//       // Job has enough buffer - reduce it
+//       const amountToReduce = adjustmentNeeded;
+//       const currentJobNewValue = currentJobOldValue - amountToReduce;
+
+//       jobUpdates.push({
+//         jobId: currentJob.id,
+//         oldValue: currentJobOldValue,
+//         newValue: currentJobNewValue,
+//         amountReduced: amountToReduce,
+//         index: i,
+//       });
+
+//       console.log(
+//         `[generateFinalInvoiceService] Job #${i} (#${currentJob.id}): £${currentJobOldValue} → £${currentJobNewValue} (reduced by £${amountToReduce})`,
+//       );
+
+//       adjustmentNeeded = 0; // Adjustment complete
+//     }
+//   }
+
+//   // Check if we successfully applied the full adjustment
+//   if (adjustmentNeeded > 0.01) {
+//     console.error(
+//       `[generateFinalInvoiceService] ERROR: Could not apply full adjustment. Remaining: £${adjustmentNeeded.toFixed(2)}`,
 //     );
-//     lastJobNewValue = 0;
+//     return {
+//       success: false,
+//       statusCode: 400,
+//       message: `Insufficient buffer in jobs to apply adjustment. Remaining unapplied: £${adjustmentNeeded.toFixed(2)}`,
+//     };
 //   }
 
 //   /**
-//    * Calculate final docket total
-//    * Replace old last job value with new value
+//    * Calculate final docket total from UPDATED jobs ONLY
+//    * (excluded jobs are not counted)
 //    */
-//   const finalDocketTotal = currentJobsTotal - lastJobOldValue + lastJobNewValue;
+//   let finalDocketTotal = 0;
+//   const jobValuesMap = new Map(); // Track final values
+//   const excludedJobIds = new Set(jobsToExclude.map((j) => j.jobId));
+
+//   // Populate map with original values (excluding excluded jobs)
+//   invoice.jobs.forEach((job) => {
+//     if (!excludedJobIds.has(job.id)) {
+//       jobValuesMap.set(job.id, Number(job.driver_total ?? 0));
+//     }
+//   });
+
+//   // Apply updates
+//   jobUpdates.forEach((update) => {
+//     jobValuesMap.set(update.jobId, update.newValue);
+//   });
+
+//   // Calculate final docket total
+//   finalDocketTotal = Array.from(jobValuesMap.values()).reduce(
+//     (sum, val) => sum + val,
+//     0,
+//   );
 
 //   /**
 //    * Net amount = what driver receives after deductions
 //    */
 //   const netAmount = finalDocketTotal - finalDeductionAmount;
 
-//   console.log(`[generateFinalInvoiceService] Last job adjustment:`, {
-//     lastJobId: lastJob.id,
-//     oldValue: lastJobOldValue,
-//     newValue: lastJobNewValue,
-//     subtracted: lastJobOldValue - lastJobNewValue,
-//     finalDocketTotal,
-//     netAmount,
-//   });
-
 //   // ──────────────────────────────────────────────────────────────────────
-//   // Update database: only touch the last job, finalize invoice
+//   // Update database: apply updates, exclude jobs, and finalize invoice
 //   // ──────────────────────────────────────────────────────────────────────
 
 //   const updatedInvoice = await prisma.$transaction(async (tx) => {
-//     // ✓ ONLY update the last job
-//     await tx.job.update({
-//       where: { id: lastJob.id },
-//       data: {
-//         driver_total: lastJobNewValue,
-//       },
-//     });
+//     // ✓ Update job values (only for jobs that keep their value above minimum)
+//     for (const update of jobUpdates) {
+//       await tx.job.update({
+//         where: { id: update.jobId },
+//         data: {
+//           driver_total: update.newValue,
+//         },
+//       });
 
-//     // Record the change
-//     await tx.jobChangeHistory.create({
-//       data: {
-//         job_id: lastJob.id,
-//         field: "DRIVER_TOTAL",
-//         old_value: lastJobOldValue,
-//         new_value: lastJobNewValue,
-//       },
-//     });
+//       // Record the change in history
+//       await tx.jobChangeHistory.create({
+//         data: {
+//           job_id: update.jobId,
+//           field: "DRIVER_TOTAL",
+//           old_value: update.oldValue,
+//           new_value: update.newValue,
+//         },
+//       });
 
-//     console.log(
-//       `[DB] Updated last job #${lastJob.id}: £${lastJobOldValue} → £${lastJobNewValue}`,
-//     );
+//       console.log(
+//         `[DB] Updated job #${update.jobId}: £${update.oldValue} → £${update.newValue}`,
+//       );
+//     }
+
+//     // ✓ EXCLUDE jobs from invoice (disconnect them)
+//     for (const excluded of jobsToExclude) {
+//       await tx.job.update({
+//         where: { id: excluded.jobId },
+//         data: {
+//           invoice_id: null, // Disconnect from invoice
+//         },
+//       });
+
+//       console.log(
+//         `[DB] Excluded job #${excluded.jobId} from invoice (value was £${excluded.oldValue})`,
+//       );
+//     }
 
 //     // ✓ Finalize invoice with correct totals
 //     return tx.invoice.update({
@@ -923,7 +989,7 @@ export async function deleteInvoiceService(invoiceId) {
 //         fuel_charge: Number(fuel_charge),
 //         additional_charges: Number(additional_charges),
 
-//         // ✓ docket_total = sum of all jobs (last job now reduced)
+//         // ✓ docket_total = sum of remaining jobs only (excluded jobs not counted)
 //         docket_total: finalDocketTotal,
 
 //         // ✓ net_amount = docket_total - deductions
@@ -949,6 +1015,11 @@ export async function deleteInvoiceService(invoiceId) {
 //     statusCode: 200,
 //     message: "Invoice finalized successfully",
 //     data: updatedInvoice,
+//     appliedAdjustments: {
+//       updatedJobs: jobUpdates,
+//       excludedJobs: jobsToExclude,
+//       totalExcluded: jobsToExclude.length,
+//     },
 //   };
 // }
 
@@ -974,7 +1045,9 @@ export async function generateFinalInvoiceService(payload) {
       jobs: {
         orderBy: { date_time: "asc" },
       },
-      driver: true,
+      driver: {
+        include: { driver_position: { select: { max_weight: true } } },
+      },
     },
   });
 
@@ -1019,16 +1092,18 @@ export async function generateFinalInvoiceService(payload) {
 
   /**
    * Weekly target = hourlyRate * totalHours
-   * Example: £25/hr * 7 hours = £175/week
    */
   const exactWeeklyRate = hourlyRate * totalHours;
 
   /**
-   * Current jobs total = sum of all job.driver_total
+   * Working copy of the job list — we may append newly-pulled jobs to this
+   * before running the trim cascade below, so everything downstream should
+   * read from `allJobs`, not `invoice.jobs`.
    */
-  const currentJobsTotal = invoice.jobs.reduce((sum, job) => {
-    return sum + Number(job.driver_total ?? 0);
-  }, 0);
+  let allJobs = [...invoice.jobs];
+
+  const currentJobsTotal = () =>
+    allJobs.reduce((sum, job) => sum + Number(job.driver_total ?? 0), 0);
 
   /**
    * Deductions = what gets subtracted to get net amount
@@ -1037,63 +1112,145 @@ export async function generateFinalInvoiceService(payload) {
 
   /**
    * Required docket total = exactWeeklyRate + deductions
-   * This is what the invoice SHOULD be worth (gross)
-   * Example: £175 + £25 = £200
    */
   const requiredDocketTotal = exactWeeklyRate + finalDeductionAmount;
 
   /**
-   * Adjustment needed = how much to subtract from jobs
    * adjustment = currentJobsTotal - requiredDocketTotal
+   * Positive → jobs total exceeds target, needs trimming (existing behavior)
+   * Negative → jobs total is short of target, needs topping up (new)
    */
-  let adjustmentNeeded = currentJobsTotal - requiredDocketTotal;
+  let adjustmentNeeded = currentJobsTotal() - requiredDocketTotal;
+
+  // ──────────────────────────────────────────────────────────────────────
+  // NEW: If jobs currently attached fall short of the target, pull in
+  // additional unassigned jobs (matching this driver's weight category)
+  // to close the gap. The last job pulled is left slightly over on
+  // purpose — the existing cascade-trim logic below will cut it down
+  // to hit the target exactly, same as it already does for existing jobs.
+  // ──────────────────────────────────────────────────────────────────────
+
+  const jobsToAttach = [];
+
+  if (adjustmentNeeded < -0.01) {
+    const maxWeight = invoice.driver.driver_position?.max_weight || 999999;
+    const gap = Number(Math.abs(adjustmentNeeded).toFixed(2));
+    const excludeIds = allJobs.map((j) => j.id);
+
+    // Prefer this driver's own unassigned jobs first
+    const ownCandidates = await prisma.job.findMany({
+      where: {
+        is_invoiced: false,
+        invoice_id: null,
+        id: { notIn: excludeIds },
+        driver_id: invoice.driver.id, // ⚠️ verify this field name against your Job schema
+        date_time: { gte: invoice.start_date, lte: invoice.end_date },
+        weight: { gte: 0, lte: maxWeight },
+        driver_total: { gte: 0 },
+      },
+      orderBy: { driver_total: "desc" }, // biggest first — fewer jobs needed to close the gap
+    });
+
+    // Try to close the gap using own jobs
+    for (const job of ownCandidates) {
+      jobsToAttach.push(job);
+      allJobs.push(job);
+      adjustmentNeeded = currentJobsTotal() - requiredDocketTotal;
+      if (adjustmentNeeded >= -0.01) break;
+    }
+
+    // Still short — fall back to the general pool, same weight category
+    if (adjustmentNeeded < -0.01) {
+      const stillNeeded = Number(Math.abs(adjustmentNeeded).toFixed(2));
+      const attachedIds = jobsToAttach.map((j) => j.id);
+
+      // Prefer ONE job big enough to cover the remaining gap on its own —
+      // it'll get trimmed to size by the cascade below.
+      const singleFallback = await prisma.job.findFirst({
+        where: {
+          is_invoiced: false,
+          invoice_id: null,
+          id: { notIn: [...excludeIds, ...attachedIds] },
+          date_time: { gte: invoice.start_date, lte: invoice.end_date },
+          weight: { gte: 0, lte: maxWeight },
+          driver_total: { gte: stillNeeded },
+        },
+        orderBy: { driver_total: "asc" }, // smallest sufficient value = least trimmed away
+      });
+
+      if (singleFallback) {
+        jobsToAttach.push(singleFallback);
+        allJobs.push(singleFallback);
+        adjustmentNeeded = currentJobsTotal() - requiredDocketTotal;
+        console.log(
+          `[generateFinalInvoiceService] Invoice ${invoice_id} short by £${stillNeeded} — pulled fallback job ${singleFallback.id} (£${singleFallback.driver_total}) from general pool.`,
+        );
+      } else {
+        // No single job big enough — pull multiple from the pool
+        const poolCandidates = await prisma.job.findMany({
+          where: {
+            is_invoiced: false,
+            invoice_id: null,
+            id: { notIn: [...excludeIds, ...attachedIds] },
+            date_time: { gte: invoice.start_date, lte: invoice.end_date },
+            weight: { gte: 0, lte: maxWeight },
+            driver_total: { gte: 0 },
+          },
+          orderBy: { driver_total: "desc" },
+        });
+
+        for (const job of poolCandidates) {
+          jobsToAttach.push(job);
+          allJobs.push(job);
+          adjustmentNeeded = currentJobsTotal() - requiredDocketTotal;
+          console.log(
+            `[generateFinalInvoiceService] Invoice ${invoice_id} short — pulled fallback job ${job.id} (£${job.driver_total}) from general pool.`,
+          );
+          if (adjustmentNeeded >= -0.01) break;
+        }
+      }
+    }
+
+    // If we still can't reach the target, there simply aren't enough
+    // unassigned jobs available — fail clearly rather than finalize wrong.
+    if (adjustmentNeeded < -0.01) {
+      return {
+        success: false,
+        statusCode: 400,
+        message: `Not enough available jobs to reach the weekly target. Short by £${Math.abs(adjustmentNeeded).toFixed(2)}`,
+      };
+    }
+  }
 
   // ──────────────────────────────────────────────────────────────────────
   // Cascade adjustment: Start from last job, skip jobs that would go to 0
+  // (unchanged — but now runs over `allJobs`, which may include the jobs
+  // just pulled in above, so the newly attached job gets trimmed first)
   // ──────────────────────────────────────────────────────────────────────
 
   const MIN_JOB_VALUE = 0.01; // Minimum value to keep a job
   const jobUpdates = []; // Track job value updates
   const jobsToExclude = []; // Track jobs to remove from invoice
 
-  // Start from the last job and work backwards
-  for (let i = invoice.jobs.length - 1; i >= 0 && adjustmentNeeded > 0; i--) {
-    const currentJob = invoice.jobs[i];
+  for (let i = allJobs.length - 1; i >= 0 && adjustmentNeeded > 0; i--) {
+    const currentJob = allJobs[i];
     const currentJobOldValue = Number(currentJob.driver_total ?? 0);
 
-    /**
-     * Calculate what the job value would be after reduction
-     */
     const potentialNewValue = currentJobOldValue - adjustmentNeeded;
 
-    /**
-     * Decision logic:
-     * IF potentialNewValue < MIN_JOB_VALUE:
-     *   → This job would go to 0 or negative
-     *   → EXCLUDE this job from invoice (remove it)
-     *   → Reduce adjustment by this job's full amount
-     * ELSE:
-     *   → Reduce this job by the adjustment amount
-     *   → Set adjustment to 0 (we're done)
-     */
-
     if (potentialNewValue < MIN_JOB_VALUE) {
-      // Job would go to 0 - EXCLUDE it completely
-
       jobsToExclude.push({
         jobId: currentJob.id,
         oldValue: currentJobOldValue,
         reason: "Excluded from finalization",
       });
 
-      // Reduce the adjustment by this job's full value
       adjustmentNeeded -= currentJobOldValue;
 
       if (adjustmentNeeded < 0) {
-        adjustmentNeeded = 0; // Don't over-subtract
+        adjustmentNeeded = 0;
       }
     } else {
-      // Job has enough buffer - reduce it
       const amountToReduce = adjustmentNeeded;
       const currentJobNewValue = currentJobOldValue - amountToReduce;
 
@@ -1109,11 +1266,10 @@ export async function generateFinalInvoiceService(payload) {
         `[generateFinalInvoiceService] Job #${i} (#${currentJob.id}): £${currentJobOldValue} → £${currentJobNewValue} (reduced by £${amountToReduce})`,
       );
 
-      adjustmentNeeded = 0; // Adjustment complete
+      adjustmentNeeded = 0;
     }
   }
 
-  // Check if we successfully applied the full adjustment
   if (adjustmentNeeded > 0.01) {
     console.error(
       `[generateFinalInvoiceService] ERROR: Could not apply full adjustment. Remaining: £${adjustmentNeeded.toFixed(2)}`,
@@ -1127,76 +1283,90 @@ export async function generateFinalInvoiceService(payload) {
 
   /**
    * Calculate final docket total from UPDATED jobs ONLY
-   * (excluded jobs are not counted)
    */
   let finalDocketTotal = 0;
-  const jobValuesMap = new Map(); // Track final values
+  const jobValuesMap = new Map();
   const excludedJobIds = new Set(jobsToExclude.map((j) => j.jobId));
 
-  // Populate map with original values (excluding excluded jobs)
-  invoice.jobs.forEach((job) => {
+  allJobs.forEach((job) => {
     if (!excludedJobIds.has(job.id)) {
       jobValuesMap.set(job.id, Number(job.driver_total ?? 0));
     }
   });
 
-  // Apply updates
   jobUpdates.forEach((update) => {
     jobValuesMap.set(update.jobId, update.newValue);
   });
 
-  // Calculate final docket total
   finalDocketTotal = Array.from(jobValuesMap.values()).reduce(
     (sum, val) => sum + val,
     0,
   );
 
-  /**
-   * Net amount = what driver receives after deductions
-   */
   const netAmount = finalDocketTotal - finalDeductionAmount;
 
   // ──────────────────────────────────────────────────────────────────────
-  // Update database: apply updates, exclude jobs, and finalize invoice
+  // Update database: attach new jobs, apply updates, exclude jobs, finalize
   // ──────────────────────────────────────────────────────────────────────
 
-  const updatedInvoice = await prisma.$transaction(async (tx) => {
-    // ✓ Update job values (only for jobs that keep their value above minimum)
-    for (const update of jobUpdates) {
-      await tx.job.update({
-        where: { id: update.jobId },
+const updatedInvoice = await prisma.$transaction(async (tx) => {
+    // ✓ Attach any newly-pulled jobs to this invoice — batched into one call
+    if (jobsToAttach.length > 0) {
+      await tx.job.updateMany({
+        where: { id: { in: jobsToAttach.map((j) => j.id) } },
         data: {
-          driver_total: update.newValue,
+          invoice_id: invoice_id,
+          is_invoiced: true,
+          call_sign: invoice.driver.call_sign,
         },
       });
 
-      // Record the change in history
-      await tx.jobChangeHistory.create({
-        data: {
+      console.log(
+        `[DB] Attached ${jobsToAttach.length} job(s) to invoice #${invoice_id} to close weekly-target gap`,
+      );
+    }
+
+    // ✓ Update job values — each job has a different newValue so this can't
+    // be a single updateMany, but run them concurrently instead of sequentially
+    if (jobUpdates.length > 0) {
+      await Promise.all(
+        jobUpdates.map((update) =>
+          tx.job.update({
+            where: { id: update.jobId },
+            data: { driver_total: update.newValue },
+          }),
+        ),
+      );
+
+      // Batch the history rows into a single insert
+      await tx.jobChangeHistory.createMany({
+        data: jobUpdates.map((update) => ({
           job_id: update.jobId,
           field: "DRIVER_TOTAL",
           old_value: update.oldValue,
           new_value: update.newValue,
-        },
+        })),
       });
 
-      console.log(
-        `[DB] Updated job #${update.jobId}: £${update.oldValue} → £${update.newValue}`,
-      );
+      jobUpdates.forEach((update) => {
+        console.log(
+          `[DB] Updated job #${update.jobId}: £${update.oldValue} → £${update.newValue}`,
+        );
+      });
     }
 
-    // ✓ EXCLUDE jobs from invoice (disconnect them)
-    for (const excluded of jobsToExclude) {
-      await tx.job.update({
-        where: { id: excluded.jobId },
-        data: {
-          invoice_id: null, // Disconnect from invoice
-        },
+    // ✓ EXCLUDE jobs from invoice — batched into one call
+    if (jobsToExclude.length > 0) {
+      await tx.job.updateMany({
+        where: { id: { in: jobsToExclude.map((j) => j.jobId) } },
+        data: { invoice_id: null },
       });
 
-      console.log(
-        `[DB] Excluded job #${excluded.jobId} from invoice (value was £${excluded.oldValue})`,
-      );
+      jobsToExclude.forEach((excluded) => {
+        console.log(
+          `[DB] Excluded job #${excluded.jobId} from invoice (value was £${excluded.oldValue})`,
+        );
+      });
     }
 
     // ✓ Finalize invoice with correct totals
@@ -1208,19 +1378,10 @@ export async function generateFinalInvoiceService(payload) {
         insurance_charge: Number(insurance_charge),
         fuel_charge: Number(fuel_charge),
         additional_charges: Number(additional_charges),
-
-        // ✓ docket_total = sum of remaining jobs only (excluded jobs not counted)
         docket_total: finalDocketTotal,
-
-        // ✓ net_amount = docket_total - deductions
         net_amount: netAmount,
-
-        // total_deductions stays the same
         total_deductions: finalDeductionAmount,
-
-        // final_total = the weekly rate target
         final_total: exactWeeklyRate,
-
         status: "FINAL",
       },
       include: {
@@ -1228,7 +1389,7 @@ export async function generateFinalInvoiceService(payload) {
         driver: true,
       },
     });
-  });
+  }, { maxWait: 10000, timeout: 30000 }); // ← same generous timeout as redraftInvoiceService
 
   return {
     success: true,
@@ -1236,6 +1397,10 @@ export async function generateFinalInvoiceService(payload) {
     message: "Invoice finalized successfully",
     data: updatedInvoice,
     appliedAdjustments: {
+      attachedJobs: jobsToAttach.map((j) => ({
+        jobId: j.id,
+        value: Number(j.driver_total ?? 0),
+      })),
       updatedJobs: jobUpdates,
       excludedJobs: jobsToExclude,
       totalExcluded: jobsToExclude.length,
@@ -1647,245 +1812,499 @@ export async function generateDetailedInvoiceSummaryService(
 }
 
 
+// export async function redraftInvoiceService(invoiceId) {
+//   console.log(`[REDRAFT] Starting redraft for invoice ${invoiceId}`);
+
+//   try {
+//     const result = await prisma.$transaction(
+//       async (tx) => {
+//         const invoice = await tx.invoice.findUnique({
+//           where: {
+//             id: invoiceId,
+//           },
+//           include: {
+//             driver: {
+//               include: {
+//                 driver_position: {
+//                   select: {
+//                     max_weight: true,
+//                   },
+//                 },
+//               },
+//             },
+//           },
+//         });
+
+//         if (!invoice || !invoice.driver) {
+//           throw new Error("Invoice or Driver not found");
+//         }
+
+//         const driver = invoice.driver;
+//         const weeklyTarget = calculateWeeklyTarget(driver);
+//         const maxWeight = driver.driver_position?.max_weight || 999999;
+
+//         await tx.job.updateMany({
+//           where: {
+//             invoice_id: invoiceId,
+//             driver_id: driver.id,
+//             driver_total: 0,
+//           },
+//           data: {
+//             driver_id: null,
+//             invoice_id: null,
+//             is_invoiced: false,
+//             call_sign: null,
+//             is_carry_forward_processed: false,
+//           },
+//         });
+
+//         await tx.job.updateMany({
+//           where: {
+//             invoice_id: invoiceId,
+//           },
+//           data: {
+//             invoice_id: null,
+//             is_invoiced: false,
+//           },
+//         });
+
+//         const preliminary = calculateInvoiceFinancials(driver, 0);
+
+//         const totalDeductions = Number(
+//           preliminary.total_deductions.toFixed(2)
+//         );
+
+//         const requiredDocketTotal = Number(
+//           (weeklyTarget + totalDeductions).toFixed(2)
+//         );
+
+//         const availableJobs = await tx.job.findMany({
+//           where: {
+//             is_invoiced: false,
+//             date_time: {
+//               gte: invoice.start_date,
+//               lte: invoice.end_date,
+//             },
+//             weight: {
+//               gte: 0,
+//               lte: maxWeight,
+//             },
+//             driver_total: {
+//               gt: 0,
+//             },
+//           },
+//           orderBy: {
+//             date_time: "asc",
+//           },
+//         });
+
+//         const selectedJobs = [];
+//         let runningGross = 0;
+
+//         for (const job of availableJobs) {
+//           selectedJobs.push(job);
+
+//           runningGross = Number(
+//             (
+//               runningGross +
+//               Number(job.driver_total || 0)
+//             ).toFixed(2)
+//           );
+
+//           if (runningGross >= requiredDocketTotal) {
+//             break;
+//           }
+//         }
+
+//         if (selectedJobs.length === 0) {
+//           return await resetInvoice(tx, invoiceId);
+//         }
+
+//         const overshoot = Number(
+//           (runningGross - requiredDocketTotal).toFixed(2)
+//         );
+
+//         if (overshoot > 0) {
+//           const lastJob =
+//             selectedJobs[selectedJobs.length - 1];
+
+//           const originalValue = Number(
+//             lastJob.driver_total || 0
+//           );
+
+//           const newValue = Number(
+//             (originalValue - overshoot).toFixed(2)
+//           );
+
+//           if (newValue < 0) {
+//             throw new Error(
+//               `Invalid driver_total adjustment for job ${lastJob.id}`
+//             );
+//           }
+
+//           await tx.job.update({
+//             where: {
+//               id: lastJob.id,
+//             },
+//             data: {
+//               driver_total: newValue,
+//             },
+//           });
+
+//           runningGross = requiredDocketTotal;
+//         }
+
+//         const finalFinancials = calculateInvoiceFinancials(
+//           driver,
+//           runningGross
+//         );
+
+//         await tx.job.updateMany({
+//           where: {
+//             id: {
+//               in: selectedJobs.map((job) => job.id),
+//             },
+//           },
+//           data: {
+//             is_invoiced: true,
+//             invoice_id: invoiceId,
+//             call_sign: driver.call_sign,
+//           },
+//         });
+
+//         const updatedInvoice = await tx.invoice.update({
+//           where: {
+//             id: invoiceId,
+//           },
+//           data: {
+//             docket_total: runningGross,
+//             net_amount: runningGross,
+//             final_total: finalFinancials.final_total,
+//             total_number_of_dockets: selectedJobs.length,
+//             admin_fee: finalFinancials.admin_fee,
+//             vehicle_hire_charges:
+//               finalFinancials.vehicle_hire_charges,
+//             insurance_charge:
+//               finalFinancials.insurance_charge,
+//             fuel_charge: finalFinancials.fuel_charge,
+//             vat: finalFinancials.vat,
+//             total_deductions:
+//               finalFinancials.total_deductions,
+//             carried_forward_total:
+//               finalFinancials.carried_forward_total,
+//             status: "DRAFT",
+//             carry_forward_admin_fee:
+//               driver.carry_forward_admin_fee,
+//             carry_forward_admin_vat_percent:
+//               driver.carry_forward_admin_vat_percent,
+//             carry_forward_vehicle_hire_charge:
+//               driver.carry_forward_vehicle_hire_charge,
+//             carry_forward_vehicle_vat_percent:
+//               driver.carry_forward_vehicle_vat_percent,
+//             carry_forward_insurance_charge:
+//               driver.carry_forward_insurance_charge,
+//             carry_forward_insurance_vat_percent:
+//               driver.carry_forward_insurance_vat_percent,
+//             carry_forward_fuel_charge:
+//               driver.carry_forward_fuel_charge,
+//             carry_forward_fuel_vat_percent:
+//               driver.carry_forward_fuel_vat_percent,
+//           },
+//         });
+
+//         await tx.driver.update({
+//           where: {
+//             id: driver.id,
+//           },
+//           data: {
+//             carry_forward_admin_fee: 0,
+//             carry_forward_admin_vat_percent: 0,
+//             carry_forward_vehicle_hire_charge: 0,
+//             carry_forward_vehicle_vat_percent: 0,
+//             carry_forward_insurance_charge: 0,
+//             carry_forward_insurance_vat_percent: 0,
+//             carry_forward_fuel_charge: 0,
+//             carry_forward_fuel_vat_percent: 0,
+//           },
+//         });
+
+//         return {
+//           success: true,
+//           statusCode: 200,
+//           data: {
+//             invoice: updatedInvoice,
+//           },
+//         };
+//       },
+//       {
+//         maxWait: 10000,
+//         timeout: 30000,
+//       }
+//     );
+
+//     return result;
+//   } catch (error) {
+//     console.error(`[REDRAFT] Error:`, error);
+
+//     return {
+//       success: false,
+//       statusCode: 500,
+//       message: error.message,
+//     };
+//   }
+// }
+
 export async function redraftInvoiceService(invoiceId) {
   console.log(`[REDRAFT] Starting redraft for invoice ${invoiceId}`);
 
   try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        const invoice = await tx.invoice.findUnique({
-          where: {
-            id: invoiceId,
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Fetch Invoice and Driver
+      const invoice = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          driver: {
+            include: { driver_position: { select: { max_weight: true } } },
           },
-          include: {
-            driver: {
-              include: {
-                driver_position: {
-                  select: {
-                    max_weight: true,
-                  },
-                },
-              },
-            },
-          },
-        });
+        },
+      });
 
-        if (!invoice || !invoice.driver) {
-          throw new Error("Invoice or Driver not found");
-        }
+      if (!invoice || !invoice.driver) throw new Error("Invoice or Driver not found");
 
-        const driver = invoice.driver;
-        const weeklyTarget = calculateWeeklyTarget(driver);
-        const maxWeight = driver.driver_position?.max_weight || 999999;
+      const driver = invoice.driver;
 
-        await tx.job.updateMany({
-          where: {
-            invoice_id: invoiceId,
-            driver_id: driver.id,
-            driver_total: 0,
-          },
-          data: {
-            driver_id: null,
-            invoice_id: null,
-            is_invoiced: false,
-            call_sign: null,
-            is_carry_forward_processed: false,
-          },
-        });
+      const weeklyTarget = calculateWeeklyTarget(driver); // Your fixed rate (e.g. 1000)
+      const maxWeight = driver.driver_position?.max_weight || 999999;
 
-        await tx.job.updateMany({
-          where: {
-            invoice_id: invoiceId,
-          },
-          data: {
-            invoice_id: null,
-            is_invoiced: false,
-          },
-        });
+      // 2. CALCULATE EXACT DEDUCTIONS (Including Carry Forwards)
+      // We run the financial function with 0 docket total just to see the fixed costs/VAT/CFs
+      const preliminary = calculateInvoiceFinancials(driver, 0);
+      const totalDeductions = Number(preliminary.total_deductions.toFixed(2));
 
-        const preliminary = calculateInvoiceFinancials(driver, 0);
+      // This is the Gross Docket Total we MUST hit to pay the driver exactly their weeklyTarget
+      const requiredDocketTotal = Number((weeklyTarget + totalDeductions).toFixed(2));
 
-        const totalDeductions = Number(
-          preliminary.total_deductions.toFixed(2)
-        );
+      console.log(`[REDRAFT] Target Net: ${weeklyTarget}, Required Gross: ${requiredDocketTotal}`);
 
-        const requiredDocketTotal = Number(
-          (weeklyTarget + totalDeductions).toFixed(2)
-        );
+      // 3. Look at jobs ALREADY attached to this invoice — these are this driver's own
+      // jobs. We never want to release them into a shared pool by mistake.
+      const currentJobs = await tx.job.findMany({
+        where: { invoice_id: invoiceId },
+        orderBy: { date_time: "asc" },
+      });
 
-        const availableJobs = await tx.job.findMany({
-          where: {
-            is_invoiced: false,
-            date_time: {
-              gte: invoice.start_date,
-              lte: invoice.end_date,
-            },
-            weight: {
-              gte: 0,
-              lte: maxWeight,
-            },
-            driver_total: {
-              gt: 0,
-            },
-          },
-          orderBy: {
-            date_time: "asc",
-          },
-        });
+      const currentGross = Number(
+        currentJobs
+          .reduce((sum, j) => sum + Number(j.driver_total || 0), 0)
+          .toFixed(2),
+      );
 
-        const selectedJobs = [];
-        let runningGross = 0;
+      let selectedJobs = [];
+      let jobsToDetach = [];
+      let jobsToAttach = [];
+      let runningGross = 0;
 
-        for (const job of availableJobs) {
+      if (currentGross >= requiredDocketTotal) {
+        // ── ALREADY ENOUGH: keep the earliest jobs that reach the target,
+        // release only the excess. Nothing outside this invoice is touched. ──
+        for (const job of currentJobs) {
           selectedJobs.push(job);
-
           runningGross = Number(
-            (
-              runningGross +
-              Number(job.driver_total || 0)
-            ).toFixed(2)
+            (runningGross + Number(job.driver_total || 0)).toFixed(2),
           );
+          if (runningGross >= requiredDocketTotal) break;
+        }
+        const selectedIds = new Set(selectedJobs.map((j) => j.id));
+        jobsToDetach = currentJobs.filter((j) => !selectedIds.has(j.id));
+      } else {
+        // ── SHORTFALL: keep every job already on the invoice, then top up ──
+        selectedJobs = [...currentJobs];
+        runningGross = currentGross;
 
-          if (runningGross >= requiredDocketTotal) {
-            break;
-          }
+        // Step A: try this driver's own unassigned jobs first
+        const ownJobs = await tx.job.findMany({
+          where: {
+            is_invoiced: false,
+            invoice_id: null,
+            driver_id: driver.id, // ⚠️ verify this field name against your Job schema
+            date_time: { gte: invoice.start_date, lte: invoice.end_date },
+            weight: { gte: 0, lte: maxWeight },
+            driver_total: { gte: 0 },
+          },
+          orderBy: { date_time: "asc" },
+        });
+
+        for (const job of ownJobs) {
+          selectedJobs.push(job);
+          jobsToAttach.push(job);
+          runningGross = Number(
+            (runningGross + Number(job.driver_total || 0)).toFixed(2),
+          );
+          if (runningGross >= requiredDocketTotal) break;
         }
 
-        if (selectedJobs.length === 0) {
-          return await resetInvoice(tx, invoiceId);
-        }
-
-        const overshoot = Number(
-          (runningGross - requiredDocketTotal).toFixed(2)
+        // Step B: still short after using everything this driver has —
+        // fall back to the general pool (any driver's unassigned jobs).
+        let remainingGap = Number(
+          (requiredDocketTotal - runningGross).toFixed(2),
         );
 
-        if (overshoot > 0) {
-          const lastJob =
-            selectedJobs[selectedJobs.length - 1];
+        if (remainingGap > 0) {
+          const selectedIds = selectedJobs.map((j) => j.id);
 
-          const originalValue = Number(
-            lastJob.driver_total || 0
-          );
-
-          const newValue = Number(
-            (originalValue - overshoot).toFixed(2)
-          );
-
-          if (newValue < 0) {
-            throw new Error(
-              `Invalid driver_total adjustment for job ${lastJob.id}`
-            );
-          }
-
-          await tx.job.update({
+          // Prefer ONE job whose value alone covers the gap, so the existing
+          // overshoot logic can trim it down to hit the target exactly —
+          // this pulls in only one foreign job instead of several.
+          const singleFallback = await tx.job.findFirst({
             where: {
-              id: lastJob.id,
+              is_invoiced: false,
+              invoice_id: null,
+              id: { notIn: selectedIds },
+              date_time: { gte: invoice.start_date, lte: invoice.end_date },
+              weight: { gte: 0, lte: maxWeight },
+              driver_total: { gte: remainingGap },
             },
-            data: {
-              driver_total: newValue,
-            },
+            orderBy: { driver_total: "asc" }, // smallest sufficient value = least trimmed away
           });
 
-          runningGross = requiredDocketTotal;
+          if (singleFallback) {
+            selectedJobs.push(singleFallback);
+            jobsToAttach.push(singleFallback);
+            runningGross = Number(
+              (runningGross + Number(singleFallback.driver_total || 0)).toFixed(2),
+            );
+            console.log(
+              `[REDRAFT] Driver ${driver.id} short by ${remainingGap} — pulled fallback job ${singleFallback.id} (£${singleFallback.driver_total}) from general pool.`,
+            );
+          } else {
+            // No single job big enough — pull multiple foreign jobs greedily.
+            const poolJobs = await tx.job.findMany({
+              where: {
+                is_invoiced: false,
+                invoice_id: null,
+                id: { notIn: selectedIds },
+                date_time: { gte: invoice.start_date, lte: invoice.end_date },
+                weight: { gte: 0, lte: maxWeight },
+                driver_total: { gte: 0 },
+              },
+              orderBy: { date_time: "asc" },
+            });
+
+            for (const job of poolJobs) {
+              selectedJobs.push(job);
+              jobsToAttach.push(job);
+              runningGross = Number(
+                (runningGross + Number(job.driver_total || 0)).toFixed(2),
+              );
+              console.log(
+                `[REDRAFT] Driver ${driver.id} short — pulled fallback job ${job.id} (£${job.driver_total}) from general pool.`,
+              );
+              if (runningGross >= requiredDocketTotal) break;
+            }
+          }
         }
+      }
 
-        const finalFinancials = calculateInvoiceFinancials(
-          driver,
-          runningGross
-        );
+      if (selectedJobs.length === 0) return await resetInvoice(tx, invoiceId);
 
+      // 4. THE ADJUSTMENT (Deduction Only)
+      // If we are over (e.g., jobs sum to 2866.20 but we only need 2838.00)
+      const overshoot = Number((runningGross - requiredDocketTotal).toFixed(2));
+
+      if (overshoot > 0) {
+        const lastJob = selectedJobs[selectedJobs.length - 1];
+        const originalVal = Number(lastJob.driver_total || 0);
+        const newVal = Number((originalVal - overshoot).toFixed(2));
+
+        // Update the actual job in the database
+        await tx.job.update({
+          where: { id: lastJob.id },
+          data: { driver_total: newVal },
+        });
+
+        runningGross = requiredDocketTotal;
+        console.log(`[REDRAFT] Deducted ${overshoot} from job ${lastJob.id} to match target.`);
+      }
+
+      // 5. Release only the excess jobs (if any) back to the pool
+      if (jobsToDetach.length > 0) {
         await tx.job.updateMany({
-          where: {
-            id: {
-              in: selectedJobs.map((job) => job.id),
-            },
-          },
+          where: { id: { in: jobsToDetach.map((j) => j.id) } },
+          data: { invoice_id: null, is_invoiced: false },
+        });
+      }
+
+      // 6. Attach only the newly added jobs (if any) — own jobs and/or fallback pool jobs
+      if (jobsToAttach.length > 0) {
+        await tx.job.updateMany({
+          where: { id: { in: jobsToAttach.map((j) => j.id) } },
           data: {
             is_invoiced: true,
             invoice_id: invoiceId,
             call_sign: driver.call_sign,
           },
         });
-
-        const updatedInvoice = await tx.invoice.update({
-          where: {
-            id: invoiceId,
-          },
-          data: {
-            docket_total: runningGross,
-            net_amount: runningGross,
-            final_total: finalFinancials.final_total,
-            total_number_of_dockets: selectedJobs.length,
-            admin_fee: finalFinancials.admin_fee,
-            vehicle_hire_charges:
-              finalFinancials.vehicle_hire_charges,
-            insurance_charge:
-              finalFinancials.insurance_charge,
-            fuel_charge: finalFinancials.fuel_charge,
-            vat: finalFinancials.vat,
-            total_deductions:
-              finalFinancials.total_deductions,
-            carried_forward_total:
-              finalFinancials.carried_forward_total,
-            status: "DRAFT",
-            carry_forward_admin_fee:
-              driver.carry_forward_admin_fee,
-            carry_forward_admin_vat_percent:
-              driver.carry_forward_admin_vat_percent,
-            carry_forward_vehicle_hire_charge:
-              driver.carry_forward_vehicle_hire_charge,
-            carry_forward_vehicle_vat_percent:
-              driver.carry_forward_vehicle_vat_percent,
-            carry_forward_insurance_charge:
-              driver.carry_forward_insurance_charge,
-            carry_forward_insurance_vat_percent:
-              driver.carry_forward_insurance_vat_percent,
-            carry_forward_fuel_charge:
-              driver.carry_forward_fuel_charge,
-            carry_forward_fuel_vat_percent:
-              driver.carry_forward_fuel_vat_percent,
-          },
-        });
-
-        await tx.driver.update({
-          where: {
-            id: driver.id,
-          },
-          data: {
-            carry_forward_admin_fee: 0,
-            carry_forward_admin_vat_percent: 0,
-            carry_forward_vehicle_hire_charge: 0,
-            carry_forward_vehicle_vat_percent: 0,
-            carry_forward_insurance_charge: 0,
-            carry_forward_insurance_vat_percent: 0,
-            carry_forward_fuel_charge: 0,
-            carry_forward_fuel_vat_percent: 0,
-          },
-        });
-
-        return {
-          success: true,
-          statusCode: 200,
-          data: {
-            invoice: updatedInvoice,
-          },
-        };
-      },
-      {
-        maxWait: 10000,
-        timeout: 30000,
       }
-    );
+
+      // 7. FINAL CALCULATIONS
+      const finalFinancials = calculateInvoiceFinancials(driver, runningGross);
+
+      // 8. UPDATE INVOICE
+      const updatedInvoice = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          docket_total: runningGross,
+          net_amount: runningGross,
+          final_total: finalFinancials.final_total, // This will now match weeklyTarget
+          total_number_of_dockets: selectedJobs.length,
+          admin_fee: finalFinancials.admin_fee,
+          vehicle_hire_charges: finalFinancials.vehicle_hire_charges,
+          insurance_charge: finalFinancials.insurance_charge,
+          fuel_charge: finalFinancials.fuel_charge,
+          vat: finalFinancials.vat,
+          total_deductions: finalFinancials.total_deductions,
+          carried_forward_total: finalFinancials.carried_forward_total,
+          status: "DRAFT",
+          // Capture carry forwards before clearing driver
+          carry_forward_admin_fee: driver.carry_forward_admin_fee,
+          carry_forward_admin_vat_percent:
+            driver.carry_forward_admin_vat_percent,
+          carry_forward_vehicle_hire_charge:
+            driver.carry_forward_vehicle_hire_charge,
+          carry_forward_vehicle_vat_percent:
+            driver.carry_forward_vehicle_vat_percent,
+          carry_forward_insurance_charge:
+            driver.carry_forward_insurance_charge,
+          carry_forward_insurance_vat_percent:
+            driver.carry_forward_insurance_vat_percent,
+          carry_forward_fuel_charge: driver.carry_forward_fuel_charge,
+          carry_forward_fuel_vat_percent:
+            driver.carry_forward_fuel_vat_percent,
+        },
+      });
+
+      // 9. CLEAR DRIVER CARRY FORWARDS
+      await tx.driver.update({
+        where: { id: driver.id },
+        data: {
+          carry_forward_admin_fee: 0,
+          carry_forward_admin_vat_percent: 0,
+          carry_forward_vehicle_hire_charge: 0,
+          carry_forward_vehicle_vat_percent: 0,
+          carry_forward_insurance_charge: 0,
+          carry_forward_insurance_vat_percent: 0,
+          carry_forward_fuel_charge: 0,
+          carry_forward_fuel_vat_percent: 0,
+        },
+      });
+
+      return { success: true, statusCode: 200, data: { invoice: updatedInvoice } };
+    }, { maxWait: 10000, timeout: 30000 });
 
     return result;
   } catch (error) {
     console.error(`[REDRAFT] Error:`, error);
-
-    return {
-      success: false,
-      statusCode: 500,
-      message: error.message,
-    };
+    return { success: false, statusCode: 500, message: error.message };
   }
 }
 
