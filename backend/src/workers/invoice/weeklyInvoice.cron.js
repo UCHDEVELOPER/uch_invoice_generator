@@ -75,4 +75,4 @@ async function runAllPasses() {
   }
 }
 
-cron.schedule("* * * * *", runAllPasses);
+cron.schedule("*/15 * * * *", runAllPasses);

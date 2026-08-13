@@ -211,24 +211,24 @@ export async function generateWeeklyInvoice(payload) {
   if (existingInvoice) {
     const driverRateChanged =
       (driver.weekly_fixed_rate ?? null) !==
-        (existingInvoice.old_weekly_fixed_rate ?? null) ||
+      (existingInvoice.old_weekly_fixed_rate ?? null) ||
       (driver.per_hour_rate ?? null) !==
-        (existingInvoice.old_per_hour_rate ?? null) ||
+      (existingInvoice.old_per_hour_rate ?? null) ||
       (driver.total_hours ?? null) !==
-        (existingInvoice.old_total_hours ?? null) ||
+      (existingInvoice.old_total_hours ?? null) ||
       (driver.total_days ?? null) !== (existingInvoice.old_total_days ?? null);
 
     const chargesChanged =
       (rawPayload.admin_fee ?? driver.admin_fee ?? 0) !==
-        (existingInvoice.admin_fee ?? 0) ||
+      (existingInvoice.admin_fee ?? 0) ||
       (rawPayload.vehicle_hire_charges ?? driver.vehicle_hire_charges ?? 0) !==
-        (existingInvoice.vehicle_hire_charges ?? 0) ||
+      (existingInvoice.vehicle_hire_charges ?? 0) ||
       (rawPayload.insurance_charge ?? driver.insurance_charge ?? 0) !==
-        (existingInvoice.insurance_charge ?? 0) ||
+      (existingInvoice.insurance_charge ?? 0) ||
       (rawPayload.fuel_charge ?? driver.fuel_charge ?? 0) !==
-        (existingInvoice.fuel_charge ?? 0) ||
+      (existingInvoice.fuel_charge ?? 0) ||
       (rawPayload.additional_charges ?? driver.additional_charges ?? 0) !==
-        (existingInvoice.additional_charges ?? 0);
+      (existingInvoice.additional_charges ?? 0);
 
     const formattedExistingInvoice = {
       ...existingInvoice,
@@ -1321,7 +1321,7 @@ export async function redraftInvoiceService(invoiceId) {
           (sum, docket) =>
             sum +
             Number(docket.vat_percent ?? 0 / 100) *
-              Number(docket.driver_total || 0),
+            Number(docket.driver_total || 0),
           0,
         );
 
@@ -1406,6 +1406,7 @@ export async function redraftInvoiceService(invoiceId) {
         });
 
         // ── 8. Update invoice back to DRAFT with recalculated values ────────
+        // ── 8. Update invoice back to DRAFT with recalculated values ────────
         const updatedInvoice = await tx.selfInvoice.update({
           where: { id: invoiceId },
           data: {
@@ -1421,6 +1422,21 @@ export async function redraftInvoiceService(invoiceId) {
             fuel_charge: fuel,
             additional_charges: 0,
             status: "DRAFT",
+
+            // ── Carry-forward fields — these were missing, causing stale data ──
+            carry_forward_admin_fee: carryForwardAdmin,
+            carry_forward_admin_vat_percent: Number(driver.carry_forward_admin_vat_percent ?? 0),
+            carry_forward_vehicle_hire_charge: carryForwardVehicle,
+            carry_forward_vehicle_vat_percent: Number(driver.carry_forward_vehicle_vat_percent ?? 0),
+            carry_forward_insurance_charge: carryForwardInsurance,
+            carry_forward_insurance_vat_percent: Number(driver.carry_forward_insurance_vat_percent ?? 0),
+            carry_forward_fuel_charge: carryForwardFuel,
+            carry_forward_fuel_vat_percent: Number(driver.carry_forward_fuel_vat_percent ?? 0),
+            carry_forward_vat_total: carryForwardVat,
+
+            // ── Other derived fields also being silently dropped ──
+            docket_total_vat: docketTotalVatPercentValue,
+            manual_driver_total: manualDocketTotal,
           },
         });
 
