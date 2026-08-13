@@ -1309,7 +1309,7 @@ export async function generateFinalInvoiceService(payload) {
   // Update database: attach new jobs, apply updates, exclude jobs, finalize
   // ──────────────────────────────────────────────────────────────────────
 
-const updatedInvoice = await prisma.$transaction(async (tx) => {
+  const updatedInvoice = await prisma.$transaction(async (tx) => {
     // ✓ Attach any newly-pulled jobs to this invoice — batched into one call
     if (jobsToAttach.length > 0) {
       await tx.job.updateMany({
@@ -1359,7 +1359,7 @@ const updatedInvoice = await prisma.$transaction(async (tx) => {
     if (jobsToExclude.length > 0) {
       await tx.job.updateMany({
         where: { id: { in: jobsToExclude.map((j) => j.jobId) } },
-        data: { invoice_id: null },
+        data: { invoice_id: null, is_invoiced: false, driver_id: null, call_sign: null },
       });
 
       jobsToExclude.forEach((excluded) => {
@@ -2072,8 +2072,15 @@ export async function redraftInvoiceService(invoiceId) {
       if (!invoice || !invoice.driver) throw new Error("Invoice or Driver not found");
 
       const driver = invoice.driver;
+      const hourlyRate = Number(driver.per_hour_rate ?? 0);
+      const totalHours = Number(driver.total_hours ?? 0);
 
-      const weeklyTarget = calculateWeeklyTarget(driver); // Your fixed rate (e.g. 1000)
+      if (!hourlyRate || !totalHours) {
+        throw new Error("Invalid driver rate or hours");
+      }
+
+      const weeklyTarget = hourlyRate * totalHours;
+      
       const maxWeight = driver.driver_position?.max_weight || 999999;
 
       // 2. CALCULATE EXACT DEDUCTIONS (Including Carry Forwards)
