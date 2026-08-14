@@ -200,16 +200,36 @@ function Invoices() {
       toast.error("Please select invoices to finalize");
       return;
     }
+
+    const alreadyFinalIds = invoices
+      .filter((inv) => selectedInvoices.includes(inv.id) && inv.status === "FINAL")
+      .map((inv) => inv.id);
+    const invoiceIdsToFinalize = selectedInvoices.filter(
+      (id) => !alreadyFinalIds.includes(id),
+    );
+
+    if (alreadyFinalIds.length > 0) {
+      toast.error(
+        alreadyFinalIds.length === selectedInvoices.length
+          ? "Selected invoice(s) are already Finalized"
+          : `${alreadyFinalIds.length} selected invoice(s) are already Finalized and will be skipped`,
+      );
+    }
+
+    if (invoiceIdsToFinalize.length === 0) {
+      return;
+    }
+
     try {
       setBulkFinalizing(true);
       const response = await bulkGenerateFinalInvoice({
-        invoiceIds: selectedInvoices,
+        invoiceIds: invoiceIdsToFinalize,
       });
 
       if (response?.data?.success) {
         toast.success(
           response.data.message ||
-          `${selectedInvoices.length} invoice(s) finalized`,
+          `${invoiceIdsToFinalize.length} invoice(s) finalized`,
         );
       } else {
         const { successCount, failureCount, failed } =
