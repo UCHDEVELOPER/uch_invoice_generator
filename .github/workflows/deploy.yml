@@ -13,43 +13,24 @@ jobs:
       - name: Checkout latest code
         uses: actions/checkout@v4
 
-      - name: Ensure Google Chrome is installed
+      - name: Deploy Backend
         run: |
-          if command -v google-chrome-stable &> /dev/null; then
-            echo "Google Chrome already installed, skipping."
-          else
-            echo "Google Chrome not found, installing..."
-            wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
-            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-            sudo apt-get update
-            sudo apt-get install -y google-chrome-stable
-          fi
+          set -e
 
-      - name: Deploy
-        run: |
           cd /var/www/html
 
           echo "Pull latest code..."
           git fetch origin
           git reset --hard origin/main
 
-          echo "Backend..."
-
+          echo "Installing backend dependencies..."
           cd backend
-
           npm install
 
+          echo "Restarting backend..."
           pm2 restart backend
+
+          echo "Restarting worker..."
           pm2 restart worker
 
-          echo "Frontend..."
-
-          cd ../frontend
-
-          rm -rf .next
-
-          npm install
-
-          npm run build
-
-          pm2 restart frontend
+          echo "Backend deployment completed successfully."
