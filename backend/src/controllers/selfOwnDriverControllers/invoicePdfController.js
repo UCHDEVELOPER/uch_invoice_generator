@@ -84,9 +84,9 @@ setInterval(cleanupOldPdfs, 60 * 60 * 1000);
 
 async function initBrowser() {
   // Reuse if already connected
-  if (browserInstance && typeof browserInstance.isConnected === "function") {
+  if (browserInstance) {
     try {
-      if (browserInstance.isConnected()) return browserInstance;
+      if (browserInstance.connected) return browserInstance;
     } catch {
       browserInstance = null;
     }
