@@ -639,11 +639,19 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
             padding: 8px 0;
           "
         >
-          <div >Number of Dockets: ${totals.numberOfDockets}</div>
-          <div
-            style="display: flex; align-items: center; gap: 40px; padding: 0 20px"
-          >
-            Docket Total: <span>${formatCurrency(totals.docketTotal)}</span>
+        <div >Number of Dockets: ${totals.numberOfDockets}</div>
+        <div style="display: flex; flex-direction:column; gap:5px">
+            <div
+              style="display: flex; align-items: center; gap: 50px; padding: 0 20px"
+            >
+              Docket Total: <span>${formatCurrency(totals.docketTotal)}</span>
+            </div>
+
+                      <div
+              style="display: flex; align-items: center; gap: 40px; padding: 0 20px"
+            >
+              VAT @${formatCurrency(adjustments.docketTotal.vatPct)}%: <span>${formatCurrency(adjustments.docketTotal.vatAmt)}</span>
+            </div>
           </div>
         </div>
 
@@ -755,18 +763,6 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
     </ul>`
         : ""
     }
-
-      ${
-        adjustments.docketTotal?.vatPct
-          ? `
-    <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
-      <li style="flex-basis:38%">Docket Vat</li>
-      <li style="flex-basis:14%; text-align:center">+${formatCurrency(adjustments.docketTotal.value)}</li>
-      <li style="flex-basis:10%; text-align:center">+${formatCurrency(adjustments.docketTotal.vatPct)}%</li>
-      <li style="flex-basis:14%; text-align:center">+${formatCurrency(adjustments.docketTotal.vatAmt)}</li>
-    </ul>`
-          : ""
-      }
 
     ${
       adjustments.carriedForward?.value
