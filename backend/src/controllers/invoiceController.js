@@ -20,6 +20,26 @@ import {
 } from "../services/invoiceService.js";
 import { generateBankRemittancePdf } from "../utils/generateBankRemittancePdf.js";
 import { buildUkRange, parseLocalDate } from "../utils/parseUserDate.js";
+import { runAllPasses } from "../workers/invoice/weeklyInvoice.cron.js";
+// import { runSelfInvoice } from "../workers/selfInvoice/weeklySelfInvoice.worker.js"
+
+export async function generateWeeklyInvoiceClick(req, res) {
+  try {
+    await runAllPasses();
+
+    res.status(200).json({
+      success: true,
+      message: "Weekly invoice processing completed successfully",
+    });
+  } catch (error) {
+    console.error("Weekly invoice error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Weekly invoice processing failed",
+    });
+  }
+}
 
 export async function generateInvoice(req, res) {
   try {

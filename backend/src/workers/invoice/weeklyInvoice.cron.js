@@ -9,7 +9,7 @@
 // handledDriverIds flows from Pass 1 → Pass 2 → Pass 3 so no driver is
 // processed twice.
 
-import cron from "node-cron";
+// import cron from "node-cron";
 import { findPendingWeeks } from "./findPendingWeeks.js";
 import { runPass1 } from "./pass1.worker.js";
 import { runPass2 } from "./pass2.worker.js";
@@ -18,7 +18,7 @@ import { runCarryForwardPass } from "./carryForward.worker.js";
 
 let isRunning = false;
 
-async function runAllPasses() {
+export async function runAllPasses() {
   if (isRunning) {
     console.log("[CRON] Previous invoice run still in progress — skipping.");
     return;
@@ -75,4 +75,4 @@ async function runAllPasses() {
   }
 }
 
-cron.schedule("*/15 * * * *", runAllPasses);
+// cron.schedule("* * * * *", runAllPasses);

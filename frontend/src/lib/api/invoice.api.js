@@ -31,6 +31,9 @@ export const generateBankRemittance = (data) =>
 export const generateInvoiceSummary = (data) =>
   api.post("/invoice/generate-invoice-summary", data);
 
+export const generateWeeklyInvoice = (data) =>
+  api.post("/invoice/generate-weekly-invoice", data);
+
 export const regenerateInvoice = (data) =>
   api.post("/invoice/regenerate-invoice", {
     invoiceId: data,

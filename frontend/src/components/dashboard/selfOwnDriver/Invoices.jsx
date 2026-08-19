@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import PaidCustomDropdown from "../../layout/PaidCustomDropdown";
 import {
   fetchAllInvoices,
+  generateWeeklyInvoice,
   getInvoicePdfUrl,
   getInvoiceCsvUrl,
   updateInvoice,
@@ -471,6 +472,9 @@ function Invoices() {
   const [regeneratingId, setRegeneratingId] = useState(null);
   const [draftInvoice, setDraftInvoice] = useState(null);
 
+const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
+    useState(false);
+
   // modal states
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -569,12 +573,37 @@ function Invoices() {
   }, [selectedInvoices, invoices]);
 
   // ── handlers ─────────────────────────────────────────────────────────────
+  
   const handlePageChange = (page) => {
     if (page >= 1 && page <= pagination.totalPages && page !== currentPage) {
       setCurrentPage(page);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+  const handleGenerateWeeklyInvoice = async () => {
+      try {
+        setGeneratingWeeklyInvoice(true);
+        const response = await generateWeeklyInvoice({});
+  
+        if (response?.data?.success) {
+          toast.success(
+            response.data.message ||
+              "Weekly invoice processing completed successfully",
+          );
+          fetchInvoicesData();
+        } else {
+          toast.error(
+            response?.data?.message || "Failed to generate weekly invoices",
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.message || "Failed to generate weekly invoices",
+        );
+      } finally {
+        setGeneratingWeeklyInvoice(false);
+      }
+    };
 
   const handleSearch = () => setCurrentPage(1);
   const handleSearchKeyDown = (e) => {
@@ -1031,6 +1060,7 @@ function Invoices() {
                 />
               </div>
             </div>
+            
             <button
               onClick={handleClearFilters}
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition"
@@ -1111,6 +1141,7 @@ function Invoices() {
               </button>
             )}
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+              
               <button
                 onClick={() => setIsBankRemittanceModalOpen(true)}
                 className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-primary border border-primary hover:bg-primary/20 hover:text-primary duration-300 w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white cursor-pointer transition"
@@ -1168,6 +1199,50 @@ function Invoices() {
                 </svg>
                 Detailed Summary
               </button>
+                 <button
+              onClick={handleGenerateWeeklyInvoice}
+              disabled={generatingWeeklyInvoice}
+              className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingWeeklyInvoice ? (
+                <svg
+                  className="animate-spin w-[15px] h-[15px]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-[15px] h-[15px]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+                  />
+                </svg>
+              )}
+              {generatingWeeklyInvoice
+                ? "Generating..."
+                : "Generate Weekly Invoice"}
+            </button>
             </div>
           </div>
         </div>

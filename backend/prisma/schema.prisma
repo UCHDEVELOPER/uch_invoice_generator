@@ -31,7 +31,8 @@ enum ShiftType {
 
 model Driver {
   id                    String  @id @default(auto()) @map("_id") @db.ObjectId
-  name                  String? @unique
+  // name                  String? @unique
+  name                  String? 
   sage_name             String?
   call_sign             String?
   per_hour_rate         Float?
@@ -283,7 +284,7 @@ model InvoiceBatch {
 
 model SelfDriver {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  name      String? @unique
+  name      String? 
   sage_name String?
   call_sign String?
 
