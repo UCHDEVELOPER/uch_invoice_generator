@@ -620,7 +620,6 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
       }),
       prisma.invoice.count({ where }),
     ]);
-
     return {
       success: true,
       statusCode: 200,

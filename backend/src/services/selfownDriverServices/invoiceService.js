@@ -684,7 +684,7 @@ export async function deleteInvoiceService(invoiceId) {
       };
     }
 
-    await prisma.job.updateMany({
+    await prisma.selfJob.updateMany({
       where: { invoice_id: invoiceId },
       data: { invoice_id: null, is_invoiced: false },
     });

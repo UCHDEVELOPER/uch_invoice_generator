@@ -39,6 +39,9 @@ export const regenerateInvoice = (data) =>
     invoiceId: data,
   });
 
+
+
+
 export const generateDetailedInvoiceSummary = (data) =>
   api.post("/invoice/generate-detailed-invoice-summary", data);
 

@@ -153,7 +153,6 @@ export async function deleteInvoice(req, res) {
         message: "Invalid invoice ID format",
       });
     }
-
     const result = await deleteInvoiceService(invoiceId);
     return res.status(result.statusCode).json(result);
   } catch (error) {
