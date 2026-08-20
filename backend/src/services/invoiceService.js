@@ -619,6 +619,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
         },
       }),
       prisma.invoice.count({ where }),
+
     ]);
     return {
       success: true,
@@ -700,6 +701,18 @@ export async function deleteInvoiceService(invoiceId) {
     await prisma.invoice.delete({
       where: { id: invoiceId },
     });
+    await prisma.invoice.updateMany({
+  where: {
+    generated_id: {
+      gt: invoice.generated_id,
+    },
+  },
+  data: {
+    generated_id: {
+      decrement: 1,
+    },
+  },
+});
 
     return {
       success: true,

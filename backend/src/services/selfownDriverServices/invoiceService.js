@@ -692,7 +692,18 @@ export async function deleteInvoiceService(invoiceId) {
     await prisma.selfInvoice.delete({
       where: { id: invoiceId },
     });
-
+await prisma.selfInvoice.updateMany({
+  where: {
+    generated_id: {
+      gt: invoice.generated_id,
+    },
+  },
+  data: {
+    generated_id: {
+      decrement: 1,
+    },
+  },
+});
     return {
       success: true,
       statusCode: 200,
