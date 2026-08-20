@@ -22,6 +22,7 @@ import {
   generateCollectiveBankRemittance,
   generateCollectiveDetailedInvoiceSummary,
   bulkRegenerateInvoice,
+  deleteInvoice,
   bulkGenerateFinalInvoice
 } from "@/lib/api/invoice.api";
 import Loader from "./Loader";
@@ -40,6 +41,7 @@ function Invoices() {
   const [toDate, setToDate] = useState("");
 
   const [downloadingId, setDownloadingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [regeneratingId, setRegeneratingId] = useState(null);
   const [draftInvoice, setDraftInvoice] = useState(null);
 
@@ -771,6 +773,29 @@ function Invoices() {
     }
   };
 
+  const handleDeleteInvoice= async (invoiceId) => {
+    try {
+      setDeletingId(invoiceId);
+      const response = await deleteInvoice(invoiceId);
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message || "Invoice Deleted successfully",
+        );
+        fetchInvoicesData();
+        return true;
+      } else {
+        toast.error(response?.data?.message || "Failed to delete invoice");
+        throw new Error(response?.data?.message);
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to delete invoice",
+      );
+      throw error;
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
   const calculateTotals = () => {
     if (!draftInvoice) return null;
 
@@ -1366,7 +1391,7 @@ function Invoices() {
                     className="w-5 h-5 cursor-pointer accent-primary"
                   />
                 </th>
-                <th>#ID</th>
+                <th>S.No</th>
                 <th className="text-left px-[20px] py-[5px] whitespace-nowrap">
                   Invoice ID
                 </th>
@@ -1493,6 +1518,8 @@ function Invoices() {
                         <PaidCustomDropdown
                           invoice={invoice}
                           onDownload={handleDownloadInvoice}
+                          onDelete={handleDeleteInvoice}
+
                           onDownloadCsv={handleDownloadInvoiceCsv}
                           onStatusUpdate={(isPaid) =>
                             handleUpdatePaidStatus(invoice.id, isPaid)
@@ -1503,6 +1530,7 @@ function Invoices() {
                           }
                           isDownloading={downloadingId === invoice.id}
                           isRegenerating={regeneratingId === invoice.id}
+                          isDeleting={deletingId === invoice.id}
                           isFinalInvoice={invoice.status !== "DRAFT"}
                         />
                       </div>

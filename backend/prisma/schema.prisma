@@ -481,8 +481,8 @@ model SelfInvoice {
 model SelfInvoiceJob {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  invoice_id String      @db.ObjectId
-  invoice    SelfInvoice @relation(fields: [invoice_id], references: [id])
+  invoice_id String?      @db.ObjectId
+  invoice    SelfInvoice? @relation(fields: [invoice_id], references: [id])
 
   job_id String  @db.ObjectId
   job    SelfJob @relation(fields: [job_id], references: [id])
