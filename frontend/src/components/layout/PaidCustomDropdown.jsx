@@ -5,11 +5,13 @@ export default function PaidCustomDropdown({
   invoice,
   onDownload,
   onDownloadCsv,
+  onDelete,
   onStatusUpdate,
   onAdjustment,
   onRegenerate,
   isDownloading,
   isRegenerating,
+  isDeleting,
   isFinalInvoice,
 }) {
   const [open, setOpen] = useState(false);
@@ -106,6 +108,16 @@ useEffect(() => {
       console.error("Regenerate failed:", error);
     }
   };
+
+   const handleDelete = async () => {
+    try {
+      await onDelete(invoice.id);
+      setOpen(false);
+    } catch (error) {
+      console.error("Delete failed:", error);
+    }
+  };
+
 
   // Close dropdown when download completes
   useEffect(() => {
@@ -378,6 +390,32 @@ useEffect(() => {
               <span>Regenerate Invoice</span>
             </>
           )}
+        </button>
+
+        <button
+          onClick={handleDelete}
+          className="
+              w-full
+              bg-red-700
+              text-white
+              text-[12px]
+              font-bold              
+              rounded-[3px]
+              px-[17px]
+              py-[8px]
+              leading-[1.2]
+              mb-2
+              hover:bg-red-800
+              transition
+              cursor-pointer
+              disabled:opacity-50
+              disabled:cursor-not-allowed
+            "
+          disabled={
+            isUpdating || isDownloading || isRegenerating ||isDeleting
+          }
+        >
+          Delete Invoice
         </button>
 
         <button

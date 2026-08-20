@@ -17,6 +17,7 @@ import {
   regenerateInvoice,
   generateDetailedInvoiceSummary,
   bulkUpdateInvoicesToPaid,
+  deleteInvoice
 } from "@/lib/api/self-own/invoice.api";
 import Loader from "../Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -469,6 +470,8 @@ function Invoices() {
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const [downloadingId, setDownloadingId] = useState(null);
+
+  const [deletingId, setDeletingId] = useState(null);
   const [regeneratingId, setRegeneratingId] = useState(null);
   const [draftInvoice, setDraftInvoice] = useState(null);
 
@@ -671,6 +674,32 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
       setBulkUpdating(false);
     }
   };
+
+  const handleDeleteInvoice= async (invoiceId) => {
+      try {
+        setDeletingId(invoiceId);
+        const response = await deleteInvoice(invoiceId);
+        if (response?.data?.success) {
+          toast.success(
+            response.data.message || "Invoice Deleted successfully",
+          );
+          fetchInvoicesData();
+          return true;
+        } else {
+          // setDeletingId(null)
+
+          toast.error(response?.data?.message || "Failed to delete invoice");
+          throw new Error(response?.data?.message);
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.message || "Failed to delete invoice",
+        );
+        throw error;
+      } finally {
+        setRegeneratingId(null);
+      }
+    };
 
   // date-range report handlers
   const handleGenerateBankRemittance = async (
@@ -1288,7 +1317,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                   />
                 </th>
                 <th className="text-center px-[20px] py-[15px] whitespace-nowrap rounded-l-[15px]">
-                  #
+                  S.No
                 </th>
                 <th className="text-left px-[20px] py-[15px] whitespace-nowrap">
                   Invoice ID
@@ -1437,6 +1466,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                           invoice={invoice}
                           onDownload={handleDownloadInvoice}
                           onDownloadCsv={handleDownloadInvoiceCsv}
+                          onDelete={handleDeleteInvoice}
                           onStatusUpdate={(isPaid) =>
                             handleUpdatePaidStatus(invoice.id, isPaid)
                           }
@@ -1445,6 +1475,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                             handleRegenerateInvoice(invoice.id)
                           }
                           isDownloading={downloadingId === invoice.id}
+                          isDeleting={deletingId === invoice.id}
                           isRegenerating={regeneratingId === invoice.id}
                           isFinalInvoice={invoice.status !== "DRAFT"}
                         />
