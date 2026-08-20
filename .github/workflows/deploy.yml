@@ -34,3 +34,23 @@ jobs:
           pm2 restart worker
 
           echo "Backend deployment completed successfully."
+
+      - name: Deploy Frontend
+        run: |
+          set -e
+
+          cd /var/www/html/frontend
+
+          echo "Installing frontend dependencies..."
+          npm install
+
+          echo "Clearing previous frontend build..."
+          rm -rf .next
+
+          echo "Building frontend..."
+          npm run build
+
+          echo "Restarting frontend..."
+          pm2 restart frontend
+
+          echo "Frontend deployment completed successfully."

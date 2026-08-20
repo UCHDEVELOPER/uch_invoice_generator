@@ -238,14 +238,14 @@ export const transformInvoiceData = (rawData) => {
 
   const totalCharges = Math.abs(
     adminFee +
-      vehicleHire +
-      insurance +
-      fuelCharge +
-      additional +
-      additional_charges_1 +
-      additional_charges_2 +
-      additional_charges_3 +
-      carriedForward,
+    vehicleHire +
+    insurance +
+    fuelCharge +
+    additional +
+    additional_charges_1 +
+    additional_charges_2 +
+    additional_charges_3 +
+    carriedForward,
   );
   console.log(
     "totalCharges (abs of all base charges + carriedForward, NO vat, NO manual dockets):",
@@ -552,9 +552,8 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       "
     >
       <!-- HEADER -->
-      ${
-        pageNumber === 1
-          ? `
+      ${pageNumber === 1
+        ? `
       <div
         style="display: flex; justify-content: space-between; padding: 0 40px"
       >
@@ -610,7 +609,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         </div>
       </div>
       `
-          : `
+        : `
       <div style="text-align: right; padding: 0 40px; margin-bottom: 10px;">
         <strong>Page: ${pageNumber} of ${totalPages}</strong>
       </div>
@@ -623,9 +622,8 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         ${generateDocketRows(pageDockets)}
       </div>
 
-      ${
-        showFooter
-          ? `
+      ${showFooter
+        ? `
       <!-- Footer Section -->
       <footer style="position: absolute; bottom: 40px; width: 90%;">
         <!-- TOTAL -->
@@ -645,13 +643,20 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
               style="display: flex; align-items: center; gap: 50px; padding: 0 20px"
             >
               Docket Total: <span>${formatCurrency(totals.docketTotal)}</span>
+          
             </div>
 
-                      <div
-              style="display: flex; align-items: center; gap: 40px; padding: 0 20px"
-            >
-              VAT @${formatCurrency(adjustments.docketTotal.vatPct)}%: <span>${formatCurrency(adjustments.docketTotal.vatAmt)}</span>
-            </div>
+ ${adjustments.docketTotal.vatPct > 0
+          ? `
+        <div
+          style="display: flex; align-items: center; gap: 40px; padding: 0 20px"
+        >
+          VAT @${formatCurrency(adjustments.docketTotal.vatPct)}%:
+          <span>${formatCurrency(adjustments.docketTotal.vatAmt)}</span>
+        </div>
+      `
+          : ""
+        }
           </div>
         </div>
 
@@ -668,164 +673,155 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       <li style="flex-basis:14%; text-align:center">VAT £</li>
     </ul>
 
-    ${
-      adjustments.adminFee?.value
-        ? `
+    ${adjustments.adminFee?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Admin Fee</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.adminFee.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.adminFee.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.adminFee.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.vehicleHire?.value
-        ? `
+    ${adjustments.vehicleHire?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Vehicle Hire charges</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.vehicleHire.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.vehicleHire.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.vehicleHire.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.insurance?.value
-        ? `
+    ${adjustments.insurance?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Insurance charge</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.insurance.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.insurance.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.insurance.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.fuelCharge?.value
-        ? `
+    ${adjustments.fuelCharge?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Fuel charge</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.fuelCharge.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.fuelCharge.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.fuelCharge.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.additional?.value
-        ? `
+    ${adjustments.additional?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Any additional charges</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional.value)}</li>
       <li style="flex-basis:10%; text-align:center">-</li>
       <li style="flex-basis:14%; text-align:center">-</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.additional_charges_1?.value
-        ? `
+    ${adjustments.additional_charges_1?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Additional charges 1</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_1.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.additional_charges_1.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_1.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.additional_charges_2?.value
-        ? `
+    ${adjustments.additional_charges_2?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Additional charges 2</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_2.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.additional_charges_2.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_2.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.additional_charges_3?.value
-        ? `
+    ${adjustments.additional_charges_3?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Additional charges 3</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_3.value)}</li>
       <li style="flex-basis:10%; text-align:center">${adjustments.additional_charges_3.vatPct}%</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.additional_charges_3.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
-    ${
-      adjustments.carriedForward?.value
-        ? `
+    ${adjustments.carriedForward?.value
+          ? `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">Carried Forward</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.carriedForward.value)}</li>
       <li style="flex-basis:10%; text-align:center">-</li>
       <li style="flex-basis:14%; text-align:center">-${formatCurrency(adjustments.carriedForward.vatAmt)}</li>
     </ul>`
-        : ""
-    }
+          : ""
+        }
 
     ${(() => {
-      // Normalize manual dockets from string or array
-      let manualDockets = [];
-      if (rawInvoiceData.driver?.manual_dockets) {
-        if (typeof rawInvoiceData.driver.manual_dockets === "string") {
-          try {
-            const parsed = JSON.parse(rawInvoiceData.driver.manual_dockets);
-            manualDockets = Array.isArray(parsed) ? parsed : [];
-          } catch (err) {
-            manualDockets = [];
+          // Normalize manual dockets from string or array
+          let manualDockets = [];
+          if (rawInvoiceData.driver?.manual_dockets) {
+            if (typeof rawInvoiceData.driver.manual_dockets === "string") {
+              try {
+                const parsed = JSON.parse(rawInvoiceData.driver.manual_dockets);
+                manualDockets = Array.isArray(parsed) ? parsed : [];
+              } catch (err) {
+                manualDockets = [];
+              }
+            } else if (Array.isArray(rawInvoiceData.driver.manual_dockets)) {
+              manualDockets = rawInvoiceData.driver.manual_dockets;
+            }
           }
-        } else if (Array.isArray(rawInvoiceData.driver.manual_dockets)) {
-          manualDockets = rawInvoiceData.driver.manual_dockets;
-        }
-      }
 
-      if (manualDockets.length === 0) {
-        return "";
-      }
+          if (manualDockets.length === 0) {
+            return "";
+          }
 
-      const docketRows = manualDockets
-        .map((md) => {
-          const mdTotal = Number(md.driver_total || 0);
-          const mdVatPct = Number(md.vat_percent || 0);
-          const mdVatAmt = (mdTotal * mdVatPct) / 100;
-          return `
+          const docketRows = manualDockets
+            .map((md) => {
+              const mdTotal = Number(md.driver_total || 0);
+              const mdVatPct = Number(md.vat_percent || 0);
+              const mdVatAmt = (mdTotal * mdVatPct) / 100;
+              return `
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0;">
       <li style="flex-basis:38%">${md.docket_no}</li>
       <li style="flex-basis:14%; text-align:center">${formatCurrency(mdTotal)}</li>
       <li style="flex-basis:10%; text-align:center">${mdVatPct ? `${mdVatPct}%` : "-"}</li>
       <li style="flex-basis:14%; text-align:center">${mdVatAmt ? formatCurrency(mdVatAmt) : "-"}</li>
     </ul>`;
-        })
-        .join("");
+            })
+            .join("");
 
-      // Calculate totals of manual dockets (single declaration — the earlier
-      // duplicate `const manualDocketTotal` block was removed, which was the
-      // cause of the SyntaxError)
-      const manualDocketTotal = manualDockets.reduce(
-        (sum, md) => sum + Number(md.driver_total || 0),
-        0,
-      );
-      const manualDocketVatTotal = manualDockets.reduce(
-        (sum, md) =>
-          sum +
-          (Number(md.driver_total || 0) * Number(md.vat_percent || 0)) / 100,
-        0,
-      );
+          // Calculate totals of manual dockets (single declaration — the earlier
+          // duplicate `const manualDocketTotal` block was removed, which was the
+          // cause of the SyntaxError)
+          const manualDocketTotal = manualDockets.reduce(
+            (sum, md) => sum + Number(md.driver_total || 0),
+            0,
+          );
+          const manualDocketVatTotal = manualDockets.reduce(
+            (sum, md) =>
+              sum +
+              (Number(md.driver_total || 0) * Number(md.vat_percent || 0)) / 100,
+            0,
+          );
 
-      return `
+          return `
     ${docketRows}
     <ul style="list-style:none; display:flex; align-items:center; padding:2px 0; margin:0; margin-top:4px; padding-top:6px; border-top:1px solid #000; font-weight:bold;">
       <li style="flex-basis:38%">Manual Dockets Total</li>
@@ -833,7 +829,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       <li style="flex-basis:10%; text-align:center">-</li>
       <li style="flex-basis:14%; text-align:center">${manualDocketVatTotal ? `+${formatCurrency(manualDocketVatTotal)}` : "-"}</li>
     </ul>`;
-    })()}
+        })()}
   </div>
 </div>
 
@@ -863,8 +859,8 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         >
           <strong style="flex-basis: 95%; text-align: right; padding-top: 10px;">Total:</strong>
           <strong style="flex-basis: 10%; text-align: center; padding-top: 10px;">${formatCurrency(
-            totals.grandTotal,
-          )}</strong>
+          totals.grandTotal,
+        )}</strong>
         </div>
 
         <!-- Payment Detail -->
@@ -887,7 +883,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         <p style="margin: 0;">BACS: ${formatCurrency(paymentDetails.bacs)}</p>
       </footer>
       `
-          : ""
+        : ""
       }
     </div>`;
   };
