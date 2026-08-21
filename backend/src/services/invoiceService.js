@@ -702,17 +702,29 @@ export async function deleteInvoiceService(invoiceId) {
       where: { id: invoiceId },
     });
     await prisma.invoice.updateMany({
-  where: {
-    generated_id: {
-      gt: invoice.generated_id,
-    },
-  },
-  data: {
-    generated_id: {
-      decrement: 1,
-    },
-  },
-});
+      where: {
+        generated_id: {
+          gt: invoice.generated_id,
+        },
+      },
+      data: {
+        generated_id: {
+          decrement: 1,
+        },
+      },
+    });
+    await prisma.selfInvoice.updateMany({
+      where: {
+        generated_id: {
+          gt: invoice.generated_id,
+        },
+      },
+      data: {
+        generated_id: {
+          decrement: 1,
+        },
+      },
+    });
 
     return {
       success: true,
@@ -2092,7 +2104,7 @@ export async function redraftInvoiceService(invoiceId) {
       }
 
       const weeklyTarget = hourlyRate * totalHours;
-      
+
       const maxWeight = driver.driver_position?.max_weight || 999999;
 
       // 2. CALCULATE EXACT DEDUCTIONS (Including Carry Forwards)
