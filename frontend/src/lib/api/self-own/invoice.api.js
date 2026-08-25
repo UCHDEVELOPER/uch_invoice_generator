@@ -23,6 +23,10 @@ export const generateFinalInvoice = (data) =>
 export const getInvoicePdfUrl = (invoiceId) =>
   api.get(`/self-own-invoice/pdf/${invoiceId}`);
 
+export const generateWeeklyInvoice = (data) =>
+  api.post("/self-own-invoice/generate-weekly-invoice", data);
+
+
 export const generateBankRemittance = (data) =>
   api.post("/self-own-invoice/generate-bank-remittance", data);
 

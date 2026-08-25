@@ -15,9 +15,31 @@ import {
   generateCollectiveBankRemittanceService,
   generateCollectiveInvoiceSummaryService,
   generateCollectiveDetailedInvoiceSummaryService,
+  bulkRedraftInvoiceService,
+  bulkGenerateFinalInvoiceService,
 } from "../services/invoiceService.js";
 import { generateBankRemittancePdf } from "../utils/generateBankRemittancePdf.js";
 import { buildUkRange, parseLocalDate } from "../utils/parseUserDate.js";
+import { runAllPasses } from "../workers/invoice/weeklyInvoice.cron.js";
+// import { runSelfInvoice } from "../workers/selfInvoice/weeklySelfInvoice.worker.js"
+
+export async function generateWeeklyInvoiceClick(req, res) {
+  try {
+    await runAllPasses();
+
+    res.status(200).json({
+      success: true,
+      message: "Weekly invoice processing completed successfully",
+    });
+  } catch (error) {
+    console.error("Weekly invoice error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Weekly invoice processing failed",
+    });
+  }
+}
 
 export async function generateInvoice(req, res) {
   try {
@@ -498,6 +520,72 @@ export async function generateCollectiveDetailedInvoiceSummary(req, res) {
       success: false,
       statusCode: 500,
       message: err.message,
+    });
+  }
+}
+
+export async function bulkRedraftInvoice(req, res) {
+  try {
+    const { invoiceIds } = req.body;
+
+    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice IDs are required",
+      });
+    }
+
+    const invalidIds = invoiceIds.filter((id) => !validateObjectId(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: `Invalid invoice ID format: ${invalidIds.join(", ")}`,
+      });
+    }
+
+    const result = await bulkRedraftInvoiceService(invoiceIds);
+
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    });
+  }
+}
+
+export async function bulkGenerateFinalInvoice(req, res) {
+  try {
+    const { invoiceIds } = req.body;
+
+    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice IDs are required",
+      });
+    }
+
+    const invalidIds = invoiceIds.filter((id) => !validateObjectId(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: `Invalid invoice ID format: ${invalidIds.join(", ")}`,
+      });
+    }
+
+    const result = await bulkGenerateFinalInvoiceService(invoiceIds);
+
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message,
     });
   }
 }

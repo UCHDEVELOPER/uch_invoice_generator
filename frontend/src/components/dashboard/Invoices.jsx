@@ -10,6 +10,7 @@ import {
   getInvoiceCsvUrl,
   updateInvoice,
   fetchSingleInvoice,
+  generateWeeklyInvoice,
   generateBankRemittance,
   generateInvoiceSummary,
   generateFinalInvoice,
@@ -20,6 +21,9 @@ import {
   generateCollectiveInvoiceSummary,
   generateCollectiveBankRemittance,
   generateCollectiveDetailedInvoiceSummary,
+  bulkRegenerateInvoice,
+  deleteInvoice,
+  bulkGenerateFinalInvoice
 } from "@/lib/api/invoice.api";
 import Loader from "./Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -37,6 +41,7 @@ function Invoices() {
   const [toDate, setToDate] = useState("");
 
   const [downloadingId, setDownloadingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [regeneratingId, setRegeneratingId] = useState(null);
   const [draftInvoice, setDraftInvoice] = useState(null);
 
@@ -54,6 +59,8 @@ function Invoices() {
 
   // Only additional_charges is editable
   const [additionalCharges, setAdditionalCharges] = useState(0);
+  const [bulkRegenerating, setBulkRegenerating] = useState(false);
+  const [bulkFinalizing, setBulkFinalizing] = useState(false);
 
   // Date Range Modal states
   const [isBankRemittanceModalOpen, setIsBankRemittanceModalOpen] =
@@ -81,6 +88,8 @@ function Invoices() {
     generatingCollectiveDetailedSummary,
     setGeneratingCollectiveDetailedSummary,
   ] = useState(false);
+  const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
+    useState(false);
 
   const [generatingRemittance, setGeneratingRemittance] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
@@ -188,6 +197,71 @@ function Invoices() {
       toast.error(error?.response?.data?.message || "Bulk update failed");
     } finally {
       setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkFinalizeInvoice = async () => {
+    if (selectedInvoices.length === 0) {
+      toast.error("Please select invoices to finalize");
+      return;
+    }
+
+    const alreadyFinalIds = invoices
+      .filter((inv) => selectedInvoices.includes(inv.id) && inv.status === "FINAL")
+      .map((inv) => inv.id);
+    const invoiceIdsToFinalize = selectedInvoices.filter(
+      (id) => !alreadyFinalIds.includes(id),
+    );
+
+    if (alreadyFinalIds.length > 0) {
+      toast.error(
+        alreadyFinalIds.length === selectedInvoices.length
+          ? "Selected invoice(s) are already Finalized"
+          : `${alreadyFinalIds.length} selected invoice(s) are already Finalized and will be skipped`,
+      );
+    }
+
+    if (invoiceIdsToFinalize.length === 0) {
+      return;
+    }
+
+    try {
+      setBulkFinalizing(true);
+      const response = await bulkGenerateFinalInvoice({
+        invoiceIds: invoiceIdsToFinalize,
+      });
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+          `${invoiceIdsToFinalize.length} invoice(s) finalized`,
+        );
+      } else {
+        const { successCount, failureCount, failed } =
+          response?.data?.data || {};
+        if (successCount > 0) {
+          toast.success(`${successCount} invoice(s) finalized`);
+        }
+        if (failureCount > 0) {
+          toast.error(
+            `${failureCount} invoice(s) failed to finalize` +
+            (failed?.[0]?.message ? `: ${failed[0].message}` : ""),
+          );
+        }
+        if (!successCount && !failureCount) {
+          toast.error(response?.data?.message || "Bulk finalize failed");
+        }
+      }
+
+      setSelectedInvoices([]);
+      setSelectAll(false);
+      fetchInvoicesData();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to finalize invoices",
+      );
+    } finally {
+      setBulkFinalizing(false);
     }
   };
 
@@ -317,6 +391,52 @@ function Invoices() {
     }
   };
 
+  const handleBulkRegenerateInvoice = async () => {
+    if (selectedInvoices.length === 0) {
+      toast.error("Please select invoices to regenerate");
+      return;
+    }
+    try {
+      setBulkRegenerating(true);
+      const response = await bulkRegenerateInvoice({
+        invoiceIds: selectedInvoices,
+      });
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+          `${selectedInvoices.length} invoice(s) regenerated`,
+        );
+      } else {
+        // Partial success case (207) — some succeeded, some failed
+        const { successCount, failureCount, failed } =
+          response?.data?.data || {};
+        if (successCount > 0) {
+          toast.success(`${successCount} invoice(s) regenerated`);
+        }
+        if (failureCount > 0) {
+          toast.error(
+            `${failureCount} invoice(s) failed to regenerate` +
+            (failed?.[0]?.message ? `: ${failed[0].message}` : ""),
+          );
+        }
+        if (!successCount && !failureCount) {
+          toast.error(response?.data?.message || "Bulk regenerate failed");
+        }
+      }
+
+      setSelectedInvoices([]);
+      setSelectAll(false);
+      fetchInvoicesData();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to regenerate invoices",
+      );
+    } finally {
+      setBulkRegenerating(false);
+    }
+  };
+
   // Invoice Summary (unchanged)
   const handleGenerateInvoiceSummary = async (startDate, endDate, format) => {
     try {
@@ -392,7 +512,7 @@ function Invoices() {
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
-          "Failed to generate Collective Invoice Summary" + error,
+        "Failed to generate Collective Invoice Summary" + error,
       );
     } finally {
       setGeneratingCollectiveSummary(false);
@@ -430,13 +550,13 @@ function Invoices() {
       } else {
         toast.error(
           response?.data?.message ||
-            "Failed to generate Detailed Invoice Summary",
+          "Failed to generate Detailed Invoice Summary",
         );
       }
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
-          "Failed to generate Detailed Invoice Summary",
+        "Failed to generate Detailed Invoice Summary",
       );
     } finally {
       setGeneratingDetailedSummary(false);
@@ -477,16 +597,41 @@ function Invoices() {
       } else {
         toast.error(
           response?.data?.message ||
-            "Failed to generate Collective Detailed Summary",
+          "Failed to generate Collective Detailed Summary",
         );
       }
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
-          "Failed to generate Collective Detailed Summary",
+        "Failed to generate Collective Detailed Summary",
       );
     } finally {
       setGeneratingCollectiveDetailedSummary(false);
+    }
+  };
+
+  const handleGenerateWeeklyInvoice = async () => {
+    try {
+      setGeneratingWeeklyInvoice(true);
+      const response = await generateWeeklyInvoice({});
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+            "Weekly invoice processing completed successfully",
+        );
+        fetchInvoicesData();
+      } else {
+        toast.error(
+          response?.data?.message || "Failed to generate weekly invoices",
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to generate weekly invoices",
+      );
+    } finally {
+      setGeneratingWeeklyInvoice(false);
     }
   };
 
@@ -628,6 +773,29 @@ function Invoices() {
     }
   };
 
+  const handleDeleteInvoice= async (invoiceId) => {
+    try {
+      setDeletingId(invoiceId);
+      const response = await deleteInvoice(invoiceId);
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message || "Invoice Deleted successfully",
+        );
+        fetchInvoicesData();
+        return true;
+      } else {
+        toast.error(response?.data?.message || "Failed to delete invoice");
+        throw new Error(response?.data?.message);
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to delete invoice",
+      );
+      throw error;
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
   const calculateTotals = () => {
     if (!draftInvoice) return null;
 
@@ -915,6 +1083,98 @@ function Invoices() {
               </button>
             )}
 
+            {selectedInvoices.length > 0 && (
+              <button
+                onClick={handleBulkRegenerateInvoice}
+                disabled={bulkRegenerating}
+                className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-primary border border-primary hover:text-primary hover:bg-primary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkRegenerating ? (
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-[15px] h-[15px]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114-4.5M20 15a8 8 0 01-14 4.5"
+                    />
+                  </svg>
+                )}
+                Regenerate ({selectedInvoices.length})
+              </button>
+            )}
+
+            {selectedInvoices.length > 0 && (
+              <button
+                onClick={handleBulkFinalizeInvoice}
+                disabled={bulkFinalizing}
+                className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkFinalizing ? (
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-[15px] h-[15px]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+                Finalize ({selectedInvoices.length})
+              </button>
+            )}
+
             {/* Existing: Bank Remittance (regular drivers only) */}
             <button
               onClick={() => setIsBankRemittanceModalOpen(true)}
@@ -1042,6 +1302,51 @@ function Invoices() {
               </svg>
               Collective Detailed
             </button>
+
+            <button
+              onClick={handleGenerateWeeklyInvoice}
+              disabled={generatingWeeklyInvoice}
+              className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingWeeklyInvoice ? (
+                <svg
+                  className="animate-spin w-[15px] h-[15px]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-[15px] h-[15px]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
+                  />
+                </svg>
+              )}
+              {generatingWeeklyInvoice
+                ? "Generating..."
+                : "Generate Weekly Invoice"}
+            </button>
           </div>
         </div>
 
@@ -1086,7 +1391,7 @@ function Invoices() {
                     className="w-5 h-5 cursor-pointer accent-primary"
                   />
                 </th>
-                <th>#ID</th>
+                <th>S.No</th>
                 <th className="text-left px-[20px] py-[5px] whitespace-nowrap">
                   Invoice ID
                 </th>
@@ -1213,6 +1518,8 @@ function Invoices() {
                         <PaidCustomDropdown
                           invoice={invoice}
                           onDownload={handleDownloadInvoice}
+                          onDelete={handleDeleteInvoice}
+
                           onDownloadCsv={handleDownloadInvoiceCsv}
                           onStatusUpdate={(isPaid) =>
                             handleUpdatePaidStatus(invoice.id, isPaid)
@@ -1223,6 +1530,7 @@ function Invoices() {
                           }
                           isDownloading={downloadingId === invoice.id}
                           isRegenerating={regeneratingId === invoice.id}
+                          isDeleting={deletingId === invoice.id}
                           isFinalInvoice={invoice.status !== "DRAFT"}
                         />
                       </div>
@@ -1241,11 +1549,10 @@ function Invoices() {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={!pagination.hasPrevPage}
-                className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${
-                  !pagination.hasPrevPage
-                    ? "opacity-50 cursor-not-allowed border-[#22358114]"
-                    : "border-[#22358114] hover:border-secondary hover:bg-secondary"
-                }`}
+                className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${!pagination.hasPrevPage
+                  ? "opacity-50 cursor-not-allowed border-[#22358114]"
+                  : "border-[#22358114] hover:border-secondary hover:bg-secondary"
+                  }`}
               >
                 <svg
                   width="7"
@@ -1268,13 +1575,12 @@ function Invoices() {
                     typeof page === "number" && handlePageChange(page)
                   }
                   disabled={page === "..."}
-                  className={`inline-flex items-center justify-center px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 ${
-                    page === currentPage
-                      ? "border-primary bg-primary text-white"
-                      : page === "..."
-                        ? "border-transparent cursor-default"
-                        : "border-[#22358114] hover:border-primary text-[#515151] hover:text-primary"
-                  }`}
+                  className={`inline-flex items-center justify-center px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 ${page === currentPage
+                    ? "border-primary bg-primary text-white"
+                    : page === "..."
+                      ? "border-transparent cursor-default"
+                      : "border-[#22358114] hover:border-primary text-[#515151] hover:text-primary"
+                    }`}
                 >
                   {page}
                 </button>
@@ -1283,11 +1589,10 @@ function Invoices() {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={!pagination.hasNextPage}
-                className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${
-                  !pagination.hasNextPage
-                    ? "opacity-50 cursor-not-allowed border-[#22358114]"
-                    : "border-[#22358114] hover:border-secondary hover:bg-secondary"
-                }`}
+                className={`group px-3 border w-[40px] h-[40px] rounded-[50%] text-sm duration-300 flex items-center justify-center ${!pagination.hasNextPage
+                  ? "opacity-50 cursor-not-allowed border-[#22358114]"
+                  : "border-[#22358114] hover:border-secondary hover:bg-secondary"
+                  }`}
               >
                 <svg
                   width="7"
@@ -1509,7 +1814,7 @@ function Invoices() {
                     £{" "}
                     {Number(
                       draftInvoice.old_per_hour_rate *
-                        draftInvoice.old_total_hours,
+                      draftInvoice.old_total_hours,
                     ).toFixed(2)}
                   </span>
                 </div>

@@ -112,7 +112,7 @@ function AddNewDriver() {
   // ─── MANUAL DOCKETS HANDLERS ──────────────────────────────────────────────────
 
   const handleAddDocket = () => {
-    if (manualDockets.length >= 10) {
+    if (manualDockets.length >= 40) {
       toast.error("Maximum 10 dockets allowed");
       return;
     }
@@ -1195,7 +1195,7 @@ function AddNewDriver() {
           <div className="flex justify-between items-center mb-[20px]">
             <div>
               <p className="text-sm text-gray-600 font-semibold">
-                Total Dockets: {manualDockets.length}/10
+                Total Dockets: {manualDockets.length}/40
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Add up to 10 manual dockets for this driver
@@ -1204,9 +1204,9 @@ function AddNewDriver() {
             <button
               type="button"
               onClick={handleAddDocket}
-              disabled={manualDockets.length >= 10 || isLoading}
+              disabled={manualDockets.length >= 40 || isLoading}
               className={`text-sm font-bold px-[20px] py-[10px] rounded-[6px] transition-colors ${
-                manualDockets.length >= 10 || isLoading
+                manualDockets.length >= 40 || isLoading
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-primary text-white hover:bg-primary/90"
               }`}
@@ -1385,7 +1385,7 @@ function AddNewDriver() {
                         Capacity Remaining
                       </p>
                       <p className="text-lg font-bold text-orange-600 mt-1">
-                        {10 - manualDockets.length} slots
+                        {40 - manualDockets.length} slots
                       </p>
                     </div>
                   </div>

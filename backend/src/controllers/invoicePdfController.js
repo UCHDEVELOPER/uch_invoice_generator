@@ -84,10 +84,12 @@ setInterval(cleanupOldPdfs, 60 * 60 * 1000);
 
 async function initBrowser() {
   try {
-    if (!browserInstance || !browserInstance.isConnected()) {
+    if (!browserInstance || !browserInstance.connected) {
       browserInstance = await puppeteer.launch({
-        executablePath: "/snap/bin/chromium",
-        headless: "new",
+        executablePath: "/usr/bin/google-chrome-stable",
+        headless: true,
+        dumpio: true,
+        timeout: 60000,
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",

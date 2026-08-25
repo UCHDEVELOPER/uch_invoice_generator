@@ -31,10 +31,16 @@ export const generateBankRemittance = (data) =>
 export const generateInvoiceSummary = (data) =>
   api.post("/invoice/generate-invoice-summary", data);
 
+export const generateWeeklyInvoice = (data) =>
+  api.post("/invoice/generate-weekly-invoice", data);
+
 export const regenerateInvoice = (data) =>
   api.post("/invoice/regenerate-invoice", {
     invoiceId: data,
   });
+
+
+
 
 export const generateDetailedInvoiceSummary = (data) =>
   api.post("/invoice/generate-detailed-invoice-summary", data);
@@ -50,3 +56,9 @@ export const generateCollectiveInvoiceSummary = (data) =>
 
 export const generateCollectiveDetailedInvoiceSummary = (data) =>
   api.post("/invoice/generate-collective-detailed-invoice-summary", data);
+
+export const bulkRegenerateInvoice = (data) =>
+  api.post("/invoice/bulk-regenerate-invoice", data);
+
+export const bulkGenerateFinalInvoice = (data) =>
+  api.post("/invoice/bulk-generate-final-invoice", data);

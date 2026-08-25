@@ -2,7 +2,7 @@ import express from "express";
 import { generateCollectiveInvoiceSummary, generateInvoice } from "../controllers/invoiceController.js";
 import { verifyToken } from "../utils/jwt.js";
 import { missingIdResponse } from "../controllers/commonController.js";
-import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary } from "../controllers/invoiceController.js";
+import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary , bulkRedraftInvoice  , bulkGenerateFinalInvoice,generateWeeklyInvoiceClick} from "../controllers/invoiceController.js";
 import { generatePdf } from "../controllers/invoicePdfController.js";
 import { generateCsv } from "../controllers/invoiceCsvController.js";
 
@@ -17,7 +17,7 @@ router.delete("/delete-invoice", verifyToken, missingIdResponse);
 router.delete("/delete-invoice/:id", verifyToken, deleteInvoice);
 
 router.post("/generate-final-invoice", verifyToken, generateFinalInvoice);
-
+router.post("/generate-weekly-invoice",generateWeeklyInvoiceClick)
 router.patch("/update-invoice", verifyToken, missingIdResponse);
 router.patch("/update-invoice/:id", verifyToken, updateInvoice);
 
@@ -34,7 +34,11 @@ router.post("/generate-collective-invoice-summary", verifyToken, generateCollect
 
 router.post("/regenerate-invoice", verifyToken, redraftInvoice);
 
+router.post("/bulk-regenerate-invoice" , verifyToken , bulkRedraftInvoice)
+
 router.post("/generate-detailed-invoice-summary", verifyToken, generateDetailedInvoiceSummary);
+
+router.post("/bulk-generate-final-invoice", verifyToken, bulkGenerateFinalInvoice);
 
 router.post("/generate-collective-detailed-invoice-summary", verifyToken, generateCollectiveDetailedInvoiceSummary);
 

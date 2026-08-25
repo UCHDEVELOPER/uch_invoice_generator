@@ -20,13 +20,13 @@ import './job-import/jobImport.worker.js';
 // CRON JOBS
 // -------------------------------
 
-import './invoice/weeklyInvoice.cron.js';
+// import './invoice/weeklyInvoice.cron.js';
 
 // -------------------------------
 // SELF INVOICE CRON JOB
 // -------------------------------
 
-import './selfInvoice/weeklySelfInvoice.cron.js';
+// import './selfInvoice/weeklySelfInvoice.cron.js';
 
 console.log('[WORKERS] All workers and cron jobs are running');
   

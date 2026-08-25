@@ -40,6 +40,7 @@ app.use("/public", express.static(path.join(process.cwd(), "src/public")));
 
 app.use("/", mainRoutes);
 
+// Aded Comment
 
 app.use(jsonErrorHandler);
 
