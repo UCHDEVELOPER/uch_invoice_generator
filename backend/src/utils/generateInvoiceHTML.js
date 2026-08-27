@@ -541,7 +541,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       style="
         width: 100%;
         max-width: 794px;
-        min-height: 1123px;
+        min-height: auto;
         background: #ffffff;
         margin: 20px auto;
         padding: clamp(16px, 4vw, 40px);
@@ -617,15 +617,18 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       }
 
       <!-- Dockets List -->
-      <div style="width: 100%; margin-top: 25px; font-size: 11px">
+      <div style="width: 100%; height: fit-content; margin-top: 25px; font-size: 11px">
+      
         ${tableHeader}
         ${generateDocketRows(pageDockets)}
+        
+       
       </div>
 
       ${showFooter
         ? `
       <!-- Footer Section -->
-      <footer style="position: absolute; bottom: 40px; width: 90%;">
+      <footer style="width: 100%; margin-top: 25px;">
         <!-- TOTAL -->
         <div
           style="
