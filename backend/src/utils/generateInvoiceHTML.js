@@ -484,7 +484,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
           <li style="text-align: left; font-weight: 500; flex-basis: 18%">
             ${docket.tariff || ""}
           </li>
-          <li style="text-align: left; font-weight: 400; flex-basis: 40%">
+          <li style="text-align: left; flex: 0 1 40%; min-width: 0; max-width: 40%; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; font-weight: 400">
             ${docket.journeyDetails || ""}
           </li>
           <li style="text-align: right; font-weight: 500; flex-grow: 1; padding: 0 20px">
@@ -505,6 +505,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
             display: flex;
             padding: 4px 0;
             margin: 0;
+            
             margin-bottom: 5px;
           "
         >
@@ -517,7 +518,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
           <li style="text-align: left; font-weight: 400; flex-basis: 18%">
             Tariff
           </li>
-          <li style="text-align: left; font-weight: 400; flex-basis: 40%">
+          <li style="text-align: left; flex: 0 1 40%; min-width: 0; max-width: 40%; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; font-weight: 400">
             Journey Details
           </li>
           <li
@@ -541,7 +542,6 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       style="
         width: 100%;
         max-width: 794px;
-        min-height: auto;
         background: #ffffff;
         margin: 20px auto;
         padding: clamp(16px, 4vw, 40px);
@@ -617,7 +617,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       }
 
       <!-- Dockets List -->
-      <div style="width: 100%; height: fit-content; margin-top: 25px; font-size: 11px">
+      <div style="width: 100%; min-height:450px; margin-top: 25px; font-size: 11px">
       
         ${tableHeader}
         ${generateDocketRows(pageDockets)}
