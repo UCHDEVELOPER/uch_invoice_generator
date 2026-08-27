@@ -53,3 +53,24 @@ export async function findPendingWeeks() {
 
   return Array.from(weekMap.values()).sort((a, b) => a.start - b.start);
 }
+
+/**
+ * True if this driver still has an uninvoiced job dated after `afterDate`.
+ *
+ * Used to defer invoice generation for a stale/backlogged pending week —
+ * if a driver has newer uninvoiced activity, the current (older) week
+ * should not be invoiced on its own; it should only feed carry-forward,
+ * and the driver's own most recent pending week is the one that gets
+ * an actual invoice.
+ */
+export async function driverHasNewerUninvoicedJobs(driverId, afterDate) {
+  const job = await prisma.job.findFirst({
+    where: {
+      driver_id: driverId,
+      is_invoiced: false,
+      date_time: { gt: afterDate },
+    },
+    select: { id: true },
+  });
+  return !!job;
+}

@@ -13,6 +13,7 @@ import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
 import { getGeneratedId } from "../../utils/getGeneratedId.js";
 import { getWeekRangeFromDate } from "../../utils/parseUserDate.js";
+import { driverHasNewerUninvoicedJobs } from "./findPendingWeeks.js";
 
 async function fetchPass3Drivers() {
   return prisma.driver.findMany({
@@ -80,6 +81,15 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
     //   );
     //   continue;
     // }
+
+    // ── Guard: driver has newer uninvoiced activity — defer this stale
+    // backlog week to carry-forward instead of invoicing it directly ─────
+    if (await driverHasNewerUninvoicedJobs(driver.id, end)) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — has newer uninvoiced jobs after ${end.toISOString()}, deferring week ${start.toISOString()} to carry-forward`,
+      );
+      continue;
+    }
 
     // ── Guard: invoice already exists ────────────────────────────────────
     const invoiceExists = await prisma.invoice.findFirst({
