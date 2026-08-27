@@ -52,18 +52,13 @@ export async function runAllPasses() {
       const pass3Handled = await runPass3({ start, end }, allHandled);
 
       // Carry-forward pass: accumulate fixed weekly charges for every active
-      // driver who received no invoice at all this week.
-      // Only runs if at least one invoice was created — if nothing was invoiced
-      // there is no meaningful batch to carry forward from.
+      // driver who received no invoice at all this week (including drivers
+      // deferred to a later, more current pending week). Always runs, even
+      // when no invoice was created this week, so those drivers' charges
+      // are still carried forward for the week in which they were skipped.
       const allInvoicedIds = new Set([...allHandled, ...pass3Handled]);
 
-      if (allInvoicedIds.size > 0) {
-        await runCarryForwardPass({ invoicedDriverIds: allInvoicedIds });
-      } else {
-        console.log(
-          `[CRON] No invoices created this week — carry-forward skipped`,
-        );
-      }
+      await runCarryForwardPass({ invoicedDriverIds: allInvoicedIds });
 
       console.log(`[CRON] ── Week complete ──\n`);
     }
