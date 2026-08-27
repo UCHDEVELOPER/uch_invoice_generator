@@ -628,7 +628,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       ${showFooter
         ? `
       <!-- Footer Section -->
-      <footer style="width: 100%; margin-top: 25px;">
+      <footer style="width: 100%; margin-top: 15px;">
         <!-- TOTAL -->
         <div
           style="
