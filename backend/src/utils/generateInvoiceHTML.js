@@ -261,7 +261,7 @@ export const transformInvoiceData = (rawData) => {
     additional_charges_vat_2_percent +
     additional_charges_vat_3_percent +
     carryForwardVat;
-  console.log(
+    console.log(
     "totalVatAmount (sum of all VAT amts incl carryForwardVat):",
     totalVatAmount,
   );
@@ -270,7 +270,7 @@ export const transformInvoiceData = (rawData) => {
     totalCharges +
     totalVatAmount -
     (manualDocketsTotal + manualDocketsVatTotal + docketTotalVat);
-  console.log(
+    console.log(
     "pre-abs adjustmentTotal = totalCharges + totalVatAmount - (manualDocketsTotal + docketTotalVat):",
     preAbsAdjustment,
     preAbsAdjustment < 0
@@ -437,7 +437,7 @@ export const transformInvoiceData = (rawData) => {
   return result;
 };
 
-const DOCKETS_PER_PAGE = 45;
+const DOCKETS_PER_PAGE = 42;
 
 const paginateDockets = (dockets) => {
   if (dockets.length === 0) return [[]];
@@ -569,7 +569,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         </div>
       </div>
 
-      <hr style="margin: 25px 0; border: 0; border-top: 2px solid #000" />
+      <hr style="margin: 15px 0; border: 0; border-top: 2px solid #000" />
 
       <!-- FROM + INFO -->
       <div
@@ -617,7 +617,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       }
 
       <!-- Dockets List -->
-      <div style="width: 100%; min-height:450px; margin-top: 25px; font-size: 11px">
+      <div style="width: 100%; min-height:450px; max-height: 545px; margin-top: 15px; font-size: 11px">
       
         ${tableHeader}
         ${generateDocketRows(pageDockets)}
@@ -628,7 +628,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       ${showFooter
         ? `
       <!-- Footer Section -->
-      <footer style="width: 100%; margin-top: 15px;">
+      <footer style="width: 100%; margin-top: 10px;">
         <!-- TOTAL -->
         <div
           style="
@@ -643,13 +643,11 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
         <div >Number of Dockets: ${totals.numberOfDockets}</div>
         <div style="display: flex; flex-direction:column; gap:5px">
             <div
-              style="display: flex; align-items: center; gap: 50px; padding: 0 20px"
-            >
+              style="display: flex; align-items: center; gap: 50px; padding: 0 20px">
               Docket Total: <span>${formatCurrency(totals.docketTotal)}</span>
-          
             </div>
 
- ${adjustments.docketTotal.vatPct > 0
+            ${adjustments.docketTotal.vatPct > 0
           ? `
         <div
           style="display: flex; align-items: center; gap: 40px; padding: 0 20px"
