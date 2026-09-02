@@ -4,6 +4,7 @@ import { selectJobsForRemainingAmount } from "./remainingJob.selector.js";
 import { calculateWeeklyTarget } from "./invoiceTargetCalculator.js";
 import { calculateInvoiceFinancials } from "./invoiceFinancialCalculator.js";
 import { getGeneratedId } from "../../utils/getGeneratedId.js";
+import { driverHasNewerUninvoicedJobs } from "./findPendingWeeks.js";
 
 export async function runPass2({ start, end }, handledDriverIds = new Set()) {
   console.log(`[PASS2] Starting week ${start.toISOString()}`);
@@ -27,6 +28,15 @@ export async function runPass2({ start, end }, handledDriverIds = new Set()) {
 
     const weeklyTarget = calculateWeeklyTarget(driver);
     const maxWeight = driver.driver_position?.max_weight ?? 0;
+
+    // ── Guard: driver has newer uninvoiced activity — defer this stale
+    // backlog week to carry-forward instead of invoicing it directly ─────
+    if (await driverHasNewerUninvoicedJobs(driver.id, end)) {
+      console.log(
+        `[PASS2] Driver ${driver.call_sign} — has newer uninvoiced jobs after ${end.toISOString()}, deferring week ${start.toISOString()} to carry-forward`,
+      );
+      continue;
+    }
 
     // 1. Fetch THIS driver's valid jobs (Own Jobs)
     const ownJobs = await prisma.job.findMany({
