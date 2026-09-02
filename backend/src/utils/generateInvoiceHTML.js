@@ -437,7 +437,7 @@ export const transformInvoiceData = (rawData) => {
   return result;
 };
 
-const DOCKETS_PER_PAGE = 45;
+const DOCKETS_PER_PAGE = 42;
 
 const paginateDockets = (dockets) => {
   if (dockets.length === 0) return [[]];
@@ -617,7 +617,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       }
 
       <!-- Dockets List -->
-      <div style="width: 100%; min-height:450px; margin-top: 15px; font-size: 11px">
+      <div style="width: 100%; min-height:450px; max-height: 545px; margin-top: 15px; font-size: 11px">
       
         ${tableHeader}
         ${generateDocketRows(pageDockets)}
