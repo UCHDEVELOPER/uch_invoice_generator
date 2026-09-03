@@ -18,7 +18,7 @@ router.delete("/delete-invoice/:id", verifyToken, deleteInvoice);
 
 router.post("/generate-final-invoice", verifyToken, generateFinalInvoice);
 router.post("/generate-weekly-invoice",generateWeeklyInvoiceClick)
-router.post("/generate-weekly-invoice-temp",tempGenerateWeeklyInvoiceClick)
+router.get("/generate-weekly-invoice-temp",tempGenerateWeeklyInvoiceClick)
 
 router.patch("/update-invoice", verifyToken, missingIdResponse);
 router.patch("/update-invoice/:id", verifyToken, updateInvoice);
