@@ -46,8 +46,8 @@ export async function generateWeeklyInvoiceClick(req, res) {
 
 export async function tempGenerateWeeklyInvoiceClick(req, res) {
   try {
-    const start=new Date("2026-07-20T23:00:00.000Z")
-    const end=new Date("2026-07-26T23:00:00.000Z")
+    const start=new Date("2026-08-10T23:00:00.000Z")
+    const end=new Date("2026-08-16T23:00:00.000Z")
     await tempRunPass3({start, end},"6a99051bef447d666775948f");
 
     res.status(200).json({
