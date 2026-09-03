@@ -20,6 +20,9 @@ import {
 } from "../services/invoiceService.js";
 import { generateBankRemittancePdf } from "../utils/generateBankRemittancePdf.js";
 import { buildUkRange, parseLocalDate } from "../utils/parseUserDate.js";
+import { runPass3 } from "../workers/invoice/pass3.worker.js";
+import { tempRunPass3 } from "../workers/invoice/pass3.worker.js";
+
 import { runAllPasses } from "../workers/invoice/weeklyInvoice.cron.js";
 // import { runSelfInvoice } from "../workers/selfInvoice/weeklySelfInvoice.worker.js"
 
@@ -37,6 +40,26 @@ export async function generateWeeklyInvoiceClick(req, res) {
     res.status(500).json({
       success: false,
       message: "Weekly invoice processing failed",
+    });
+  }
+}
+
+export async function tempGenerateWeeklyInvoiceClick(req, res) {
+  try {
+    const start=new Date("2026-07-20T23:00:00.000Z")
+    const end=new Date("2026-07-26T23:00:00.000Z")
+    await tempRunPass3({start, end},"6a99051bef447d666775948f");
+
+    res.status(200).json({
+      success: true,
+      message: "invoice processing completed successfully",
+    });
+  } catch (error) {
+    console.error(" invoice error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "invoice processing failed",
     });
   }
 }

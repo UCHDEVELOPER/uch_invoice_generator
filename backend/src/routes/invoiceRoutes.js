@@ -2,7 +2,7 @@ import express from "express";
 import { generateCollectiveInvoiceSummary, generateInvoice } from "../controllers/invoiceController.js";
 import { verifyToken } from "../utils/jwt.js";
 import { missingIdResponse } from "../controllers/commonController.js";
-import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary , bulkRedraftInvoice  , bulkGenerateFinalInvoice,generateWeeklyInvoiceClick} from "../controllers/invoiceController.js";
+import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary , bulkRedraftInvoice  , bulkGenerateFinalInvoice,generateWeeklyInvoiceClick,tempGenerateWeeklyInvoiceClick} from "../controllers/invoiceController.js";
 import { generatePdf } from "../controllers/invoicePdfController.js";
 import { generateCsv } from "../controllers/invoiceCsvController.js";
 
@@ -18,6 +18,8 @@ router.delete("/delete-invoice/:id", verifyToken, deleteInvoice);
 
 router.post("/generate-final-invoice", verifyToken, generateFinalInvoice);
 router.post("/generate-weekly-invoice",generateWeeklyInvoiceClick)
+router.post("/generate-weekly-invoice-temp",tempGenerateWeeklyInvoiceClick)
+
 router.patch("/update-invoice", verifyToken, missingIdResponse);
 router.patch("/update-invoice/:id", verifyToken, updateInvoice);
 
