@@ -15,6 +15,7 @@ import { runPass1 } from "./pass1.worker.js";
 import { runPass2 } from "./pass2.worker.js";
 import { runPass3 } from "./pass3.worker.js";
 import { runCarryForwardPass } from "./carryForward.worker.js";
+import { prisma } from "../../config/prismaClient.js";
 
 let isRunning = false;
 
@@ -28,7 +29,26 @@ export async function runAllPasses() {
   console.log(`[CRON] Invoice batch started at ${new Date().toISOString()}`);
 
   try {
-    const pendingWeeks = await findPendingWeeks();
+    const latestJob = await prisma.job.findMany({
+      orderBy: { date_time: "desc" },
+      take: 1
+    });
+
+    const date = new Date(latestJob[0].date_time);
+
+    const day = date.getUTCDay();
+
+    const daysSinceMonday = day === 0 ? 6 : day - 1;
+
+    const start = new Date(date);
+    start.setUTCDate(date.getUTCDate() - daysSinceMonday);
+    start.setUTCHours(0, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setUTCDate(start.getUTCDate() + 6);
+    end.setUTCHours(23, 59, 59, 999);
+    
+    const pendingWeeks = await findPendingWeeks(start, end);
 
     if (!pendingWeeks.length) {
       console.log("[CRON] No pending weeks found — nothing to process.");

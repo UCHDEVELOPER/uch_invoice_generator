@@ -26,11 +26,14 @@ export function getWeekRangeFromDate(utcDate) {
   };
 }
 
-export async function findPendingWeeks() {
+export async function findPendingWeeks(start, end) {
   const jobs = await prisma.job.findMany({
     where: {
       is_invoiced: false,
-      date_time: { not: null },
+      date_time:
+        start && end
+          ? { gte: start, lte: end }
+          : { not: null },
       driver: {
         status: "active",
         per_hour_rate: { gt: 0 },
