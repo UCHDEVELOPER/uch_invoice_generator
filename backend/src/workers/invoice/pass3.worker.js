@@ -31,6 +31,30 @@ async function fetchPass3Drivers() {
   });
 }
 
+// export async function driverHasNewerInvoice(driverId, start, end) {
+//   const latestInvoice = await prisma.invoice.findFirst({
+//     where: {
+//       driver_id: driverId,
+//       OR: [
+//         { start_date: { gt: start } },
+//         { start_date: start, end_date: { gt: end } },
+//       ],
+//     },
+//     orderBy: [
+//       {
+//         end_date: "desc"
+//       },
+//       {
+//         start_date: "desc"
+//       }
+//     ]
+//   });
+//   console.log(
+//     `Driver ${driverId} newer invoice: ${latestInvoice ? latestInvoice.generated_id : 'none'}`,
+//   );
+//   return !!latestInvoice;
+// }
+
 export async function runPass3({ start, end }, handledDriverIds = new Set()) {
   console.log(
     `[PASS3] Starting for week ${start.toISOString()} → ${end.toISOString()}`,
@@ -101,7 +125,12 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
       );
       continue;
     }
-
+//  if (await driverHasNewerInvoice(driver.id, start, end)) {
+//       console.log(
+//         `[PASS3] Driver ${driver.call_sign} — Latest invoice already exists, skipping`,
+//       );
+//       continue;
+//     }
     // ── Confirm truly no valid own jobs ───────────────────────────────────
     const hasOwnJobs = await prisma.job.findFirst({
       where: {
@@ -257,4 +286,250 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
 
   console.log(`[PASS3] Done — handled ${handledDriverIds.size} driver(s)`);
   return handledDriverIds;
+}
+
+
+export async function tempRunPass3({ start, end }, id = new Set()) {
+  {
+  console.log(
+    `[PASS3] Starting for week ${start.toISOString()} → ${end.toISOString()}`,
+  );
+
+  const driver = await prisma.driver.findUnique({
+  where: {
+    id: id,
+  },
+  include: {
+    driver_position: {
+      select: { id: true, label: true, max_weight: true },
+    },
+  },  
+});
+// console.log(driver)
+  // for (const driver of drivers) {
+    // Skip drivers already handled in Pass 1 or Pass 2
+    // if (handledDriverIds.has(driver.id)) continue;
+
+    const weeklyTarget = calculateWeeklyTarget(driver);
+
+    if (weeklyTarget <= 0) return 0;
+
+    const maxWeight = driver.driver_position?.max_weight;
+    if (maxWeight === null || maxWeight === undefined) {
+      console.log(
+        `[PASS3] Skipping driver ${driver.call_sign} — no max_weight on position`,
+      );
+      return 0;
+    }
+
+    // const latestJob = await prisma.job.findFirst({
+    //   where: {
+    //     driver_id: driver.id,
+    //     is_invoiced: false,
+    //     date_time: { not: null },
+    //   },
+    //   orderBy: { date_time: "desc" },
+    //   select: { date_time: true },
+    // });
+
+    // if (!latestJob) {
+    //   console.log(
+    //     `[PASSx] Driver ${driver.call_sign} — no uninvoiced jobs at all, skipping`,
+    //   );
+    //   continue;
+    // }
+
+    // const { start: latestWeekStart } = getWeekRangeFromDate(
+    //   latestJob.date_time,
+    // );
+
+    // if (latestWeekStart.getTime() !== start.getTime()) {
+    //   console.log(
+    //     `[PASS1] Driver ${driver.call_sign} — week ${start.toISOString()} is stale backlog (their latest activity is week ${latestWeekStart.toISOString()}), skipping`,
+    //   );
+    //   continue;
+    // }
+
+    // ── Guard: driver has newer uninvoiced activity — defer this stale
+    // backlog week to carry-forward instead of invoicing it directly ─────
+    if (await driverHasNewerUninvoicedJobs(driver.id, end)) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — has newer uninvoiced jobs after ${end.toISOString()}, deferring week ${start.toISOString()} to carry-forward`,
+      );
+      // continue;
+      return 0;
+    }
+
+    // ── Guard: invoice already exists ────────────────────────────────────
+    const invoiceExists = await prisma.invoice.findFirst({
+      where: { driver_id: driver.id, start_date: start, end_date: end },
+    });
+    if (invoiceExists) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — invoice already exists, skipping`,
+      );
+      return 0;
+    }
+    if (await driverHasNewerInvoice(driver.id, start, end)) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — Latest invoice already exists, skipping`,
+      );
+      return 0;
+    }
+
+    // ── Confirm truly no valid own jobs ───────────────────────────────────
+    const hasOwnJobs = await prisma.job.findFirst({
+      where: {
+        driver_id: driver.id,
+        is_invoiced: false,
+        date_time: { gte: start, lte: end },
+        weight: { gte: 0, lte: maxWeight },
+        driver_total: { gt: 0 },
+      },
+    });
+
+    // if (hasOwnJobs) {
+    //   // Has valid own jobs — should have been caught by Pass 2, skip here
+    //   console.log(
+    //     `[PASS3] Driver ${driver.call_sign} — has own jobs, should be Pass 2, skipping`,
+    //   );
+    //   return 0;
+    // }
+
+    // ── Fetch unassigned pool jobs ────────────────────────────────────────
+    const poolJobs = await prisma.job.findMany({
+      where: {
+        is_invoiced: false,
+        date_time: { gte: start, lte: end },
+        weight: { gte: 0, lte: maxWeight },
+        driver_total: { gt: 0 },
+      },
+      orderBy: { date_time: "asc" },
+    });
+
+    console.log(
+      `[PASS3] Driver ${driver.call_sign} — pool jobs available: ${poolJobs.length} | target: £${weeklyTarget}`,
+    );
+
+    if (!poolJobs.length) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — no pool jobs available, skipping`,
+      );
+      return 0;
+    }
+
+    // ── Select best combination from pool ─────────────────────────────────
+    const { selectedJobs, total } = selectJobsForRemainingAmount(
+      poolJobs,
+      weeklyTarget,
+      5,
+    );
+
+    if (!selectedJobs.length) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — selector returned no jobs, skipping`,
+      );
+      return 0;
+    }
+
+    const selectedJobIds = selectedJobs.map((j) => j.id);
+
+    const financials = calculateInvoiceFinancials(driver, total);
+
+    const nextId = await getGeneratedId("main");
+
+    await prisma.$transaction(async (tx) => {
+      // Create DRAFT invoice
+      const invoice = await tx.invoice.create({
+        data: {
+          generated_id: nextId,
+          driver_id: driver.id,
+          start_date: start,
+          end_date: end,
+          docket_total: total,
+          net_amount: total,
+          admin_fee: financials.admin_fee,
+          vehicle_hire_charges: financials.vehicle_hire_charges,
+          insurance_charge: financials.insurance_charge,
+          fuel_charge: financials.fuel_charge,
+          vat: financials.vat,
+          carried_forward_total: financials.carried_forward_total,
+          current_week_deductions: financials.current_week_deductions,
+          total_number_of_dockets: selectedJobs.length,
+          total_deductions: financials.total_deductions,
+          final_total: financials.final_total,
+          status: "DRAFT",
+          old_per_hour_rate: driver.per_hour_rate,
+          old_total_hours: driver.total_hours,
+
+          carry_forward_admin_fee: driver.carry_forward_admin_fee || 0,
+          carry_forward_admin_vat_percent:
+            driver.carry_forward_admin_vat_percent || 0,
+          carry_forward_vehicle_hire_charge:
+            driver.carry_forward_vehicle_hire_charge || 0,
+          carry_forward_vehicle_vat_percent:
+            driver.carry_forward_vehicle_vat_percent || 0,
+          carry_forward_insurance_charge:
+            driver.carry_forward_insurance_charge || 0,
+          carry_forward_insurance_vat_percent:
+            driver.carry_forward_insurance_vat_percent || 0,
+          carry_forward_fuel_charge: driver.carry_forward_fuel_charge || 0,
+          carry_forward_fuel_vat_percent:
+            driver.carry_forward_fuel_vat_percent || 0,
+        },
+      });
+
+      // Assign pool jobs to this driver and lock to invoice
+      await tx.job.updateMany({
+        where: { id: { in: selectedJobIds } },
+        data: {
+          driver_id: driver.id,
+          call_sign: driver.call_sign,
+          is_invoiced: true,
+          invoice_id: invoice.id,
+        },
+      });
+
+      await tx.jobChangeHistory.createMany({
+        data: selectedJobs.flatMap((job) => [
+          {
+            job_id: job.id,
+            field: "CALL_SIGN",
+            old_value: null,
+            new_value: driver.call_sign,
+          },
+          {
+            job_id: job.id,
+            field: "DRIVER_ID",
+            old_value: null,
+            new_value: driver.id,
+          },
+        ]),
+      });
+
+      // Reset carry-forward — clears accumulated charges now that an invoice
+      // has been created. Inside the transaction so it rolls back on failure.
+      await tx.driver.update({
+        where: { id: driver.id },
+        data: {
+          carry_forward_admin_fee: 0,
+          carry_forward_admin_vat_percent: 0,
+          carry_forward_vehicle_hire_charge: 0,
+          carry_forward_vehicle_vat_percent: 0,
+          carry_forward_insurance_charge: 0,
+          carry_forward_insurance_vat_percent: 0,
+          carry_forward_fuel_charge: 0,
+          carry_forward_fuel_vat_percent: 0,
+        },
+      });
+    });
+
+    // handledDriverIds.add(driver.id);
+    console.log(
+      `[PASS3] ✓ Invoice created | Driver: ${driver.call_sign} | Jobs: ${selectedJobs.length} | Total: £${total} | Target: £${weeklyTarget}`,
+    );
+  }
+
+  // console.log(`[PASS3] Done — handled ${handledDriverIds.size} driver(s)`);
+  // return handledDriverIds;
 }

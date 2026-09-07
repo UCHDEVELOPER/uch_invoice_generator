@@ -168,7 +168,7 @@ const formatDate = (date) => {
   <!-- Table -->
   <table class="data-table">
     <thead>
-      <tr>
+      <tr> 
         <th class="col-type   center">Type</th>
         <th class="col-driver  left">Driver</th>
         <th class="col-account center">Account</th>
