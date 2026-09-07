@@ -683,6 +683,7 @@ export async function importDriversService(file) {
             },
           });
         }
+        payload.status=existingDriver.status; // Preserve existing status
 
         await prisma.driver.update({
           where: { id: existingDriver.id },

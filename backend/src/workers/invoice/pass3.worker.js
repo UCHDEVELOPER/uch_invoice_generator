@@ -31,6 +31,30 @@ async function fetchPass3Drivers() {
   });
 }
 
+// export async function driverHasNewerInvoice(driverId, start, end) {
+//   const latestInvoice = await prisma.invoice.findFirst({
+//     where: {
+//       driver_id: driverId,
+//       OR: [
+//         { start_date: { gt: start } },
+//         { start_date: start, end_date: { gt: end } },
+//       ],
+//     },
+//     orderBy: [
+//       {
+//         end_date: "desc"
+//       },
+//       {
+//         start_date: "desc"
+//       }
+//     ]
+//   });
+//   console.log(
+//     `Driver ${driverId} newer invoice: ${latestInvoice ? latestInvoice.generated_id : 'none'}`,
+//   );
+//   return !!latestInvoice;
+// }
+
 export async function runPass3({ start, end }, handledDriverIds = new Set()) {
   console.log(
     `[PASS3] Starting for week ${start.toISOString()} → ${end.toISOString()}`,
@@ -101,7 +125,12 @@ export async function runPass3({ start, end }, handledDriverIds = new Set()) {
       );
       continue;
     }
-
+//  if (await driverHasNewerInvoice(driver.id, start, end)) {
+//       console.log(
+//         `[PASS3] Driver ${driver.call_sign} — Latest invoice already exists, skipping`,
+//       );
+//       continue;
+//     }
     // ── Confirm truly no valid own jobs ───────────────────────────────────
     const hasOwnJobs = await prisma.job.findFirst({
       where: {
@@ -338,6 +367,12 @@ export async function tempRunPass3({ start, end }, id = new Set()) {
     if (invoiceExists) {
       console.log(
         `[PASS3] Driver ${driver.call_sign} — invoice already exists, skipping`,
+      );
+      return 0;
+    }
+    if (await driverHasNewerInvoice(driver.id, start, end)) {
+      console.log(
+        `[PASS3] Driver ${driver.call_sign} — Latest invoice already exists, skipping`,
       );
       return 0;
     }
