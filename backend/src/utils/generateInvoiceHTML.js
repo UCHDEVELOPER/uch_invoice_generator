@@ -533,9 +533,23 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
           </li>
         </ul>`;
 
-  const generatePage = (pageDockets, pageNumber, isLastPage) => {
+  const generatePage = (pageDockets, pageNumber, docketPages,isLastPage) => {
     const showFooter = isLastPage;
-
+ let manualDockets = [];
+          if (rawInvoiceData.driver?.manual_dockets) {
+            if (typeof rawInvoiceData.driver.manual_dockets === "string") {
+              try {
+                const parsed = JSON.parse(rawInvoiceData.driver.manual_dockets);
+                manualDockets = Array.isArray(parsed) ? parsed : [];
+              } catch (err) {
+                manualDockets = [];
+              }
+            } else if (Array.isArray(rawInvoiceData.driver.manual_dockets)) {
+              manualDockets = rawInvoiceData.driver.manual_dockets;
+            }
+          }
+    const adjustmentLength=Object.entries(adjustments).filter((adjustment)=>adjustment[1].value>0).length-2
+    const adjustmentFinalLength=adjustmentLength+manualDockets.length
     return `
     <!-- Page ${pageNumber} -->
     <div
@@ -617,7 +631,12 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
       }
 
       <!-- Dockets List -->
-      <div style="width: 100%; min-height:450px; max-height: 545px; margin-top: 15px; font-size: 11px">
+      ${adjustmentFinalLength>7&&docketPages.length==1?
+        ` <div style="width: 100%; min-height:1500px; max-height: 545px; margin-top: 15px; font-size: 11px">
+        `:
+`      <div style="width: 100%; min-height:450px; max-height: 545px; margin-top: 15px; font-size: 11px">`
+
+      }
       
         ${tableHeader}
         ${generateDocketRows(pageDockets)}
@@ -775,19 +794,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
 
     ${(() => {
           // Normalize manual dockets from string or array
-          let manualDockets = [];
-          if (rawInvoiceData.driver?.manual_dockets) {
-            if (typeof rawInvoiceData.driver.manual_dockets === "string") {
-              try {
-                const parsed = JSON.parse(rawInvoiceData.driver.manual_dockets);
-                manualDockets = Array.isArray(parsed) ? parsed : [];
-              } catch (err) {
-                manualDockets = [];
-              }
-            } else if (Array.isArray(rawInvoiceData.driver.manual_dockets)) {
-              manualDockets = rawInvoiceData.driver.manual_dockets;
-            }
-          }
+         
 
           if (manualDockets.length === 0) {
             return "";
@@ -894,7 +901,7 @@ export const generateInvoiceHTML = (rawInvoiceData) => {
   docketPages.forEach((pageDockets, index) => {
     const isLastPage = index === totalPages - 1;
     const pageNumber = index + 1;
-    allPages += generatePage(pageDockets, pageNumber, isLastPage);
+    allPages += generatePage(pageDockets, pageNumber,docketPages, isLastPage);
   });
 
   return `

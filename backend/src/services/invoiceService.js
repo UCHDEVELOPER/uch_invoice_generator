@@ -1554,6 +1554,8 @@ export const generateInvoiceSummaryService = async ({
       driverName: invoice.driver?.name || "",
       invoiceNumber: invoice.generated_id || "",
       jobs: invoice.total_number_of_dockets || 0,
+      bankUserName:invoice.driver?.bank_user_name || "",
+      sageName:invoice.driver?.sage_name || "",
       debtAmount: invoice.net_amount || 0,
       taxAmount,
       total: invoice.final_total || 0,
