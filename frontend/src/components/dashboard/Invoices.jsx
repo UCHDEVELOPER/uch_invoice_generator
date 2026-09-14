@@ -199,7 +199,6 @@ function Invoices() {
       setBulkUpdating(false);
     }
   };
-
   const handleBulkFinalizeInvoice = async () => {
     if (selectedInvoices.length === 0) {
       toast.error("Please select invoices to finalize");
@@ -1469,7 +1468,7 @@ function Invoices() {
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap">
                       £
                       {Number(
-                        invoice.old_per_hour_rate * invoice.old_total_hours,
+                        invoice.final_total,
                       ).toFixed(2)}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114]">

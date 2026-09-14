@@ -6,13 +6,16 @@ function escapeCsv(value) {
   const str = String(value);
   return `"${str.replace(/"/g, '""')}"`;
 }
-/**
+/**  
  * Creates Bank Remittance CSV file
  */
 export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
   const headers = [
     "Type",
+    "Call sign",
     "Driver",
+    "Sage name",
+    "Bank user name",
     "Account",
     "Sort Code",
     "Extra Reference",
@@ -43,11 +46,14 @@ export function createBankRemittanceCsv({ invoices, start_date, end_date }) {
 
     return [
       "PI",
+      invoice.driver?.call_sign || "",
+      invoice.driver?.bank_user_name || invoice.driver?.name || "",
+      invoice.driver?.sage_name || "",
       invoice.driver?.bank_user_name || invoice.driver?.name || "",
       `\t${invoice.driver?.bank_account_no || ""}`,
       `\t${invoice.driver?.iban_no || ""}`,
       "",
-      formatDate(invoice.created_at),
+      formatDate(new Date()),
       invoice.generated_id,
       `Job on ${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`,
       netAmount.toFixed(2),

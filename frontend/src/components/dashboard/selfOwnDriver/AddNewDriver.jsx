@@ -1198,7 +1198,7 @@ function AddNewDriver() {
                 Total Dockets: {manualDockets.length}/40
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Add up to 10 manual dockets for this driver
+                Add up to 40 manual dockets for this driver
               </p>
             </div>
             <button
