@@ -1468,7 +1468,7 @@ function Invoices() {
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap">
                       £
                       {Number(
-                        invoice.final_total,
+                         invoice.old_per_hour_rate * invoice.old_total_hours,
                       ).toFixed(2)}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114]">
