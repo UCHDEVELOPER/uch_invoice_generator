@@ -17,7 +17,8 @@ import {
   regenerateInvoice,
   generateDetailedInvoiceSummary,
   bulkUpdateInvoicesToPaid,
-  deleteInvoice
+  deleteInvoice,
+  bulkGenerateFinalInvoice
 } from "@/lib/api/self-own/invoice.api";
 import Loader from "../Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -55,175 +56,6 @@ function normalizeManualDockets(md) {
   return Array.isArray(md) ? md : [];
 }
 
-/**
- * Mirrors calculateSelfInvoiceFinancials exactly.
- * additionalOverride lets the UI pass editable additional charge values.
- */
-// function calcFinancials(
-//   driver,
-//   docketTotal,
-//   manualDockets = [],
-//   additionalOverride = null,
-//   draftInvoice
-// ) {
-//   const d = driver;
-
-//   // standard charges
-//   const adminFee = n(d.admin_fee);
-//   const vehicleHire = n(d.vehicle_hire_charge);
-//   const insurance = n(d.insurance_charge);
-//   const fuel = n(d.fuel_charge);
-//   const add1 = additionalOverride
-//     ? n(additionalOverride.additional_charges_1)
-//     : n(d.additional_charges_1);
-//   const add2 = additionalOverride
-//     ? n(additionalOverride.additional_charges_2)
-//     : n(d.additional_charges_2);
-//   const add3 = additionalOverride
-//     ? n(additionalOverride.additional_charges_3)
-//     : n(d.additional_charges_3);
-
-//   const add1VatPct = additionalOverride
-//     ? n(additionalOverride.additional_charges_vat_1_percent)
-//     : n(d.additional_charges_vat_1_percent);
-//   const add2VatPct = additionalOverride
-//     ? n(additionalOverride.additional_charges_vat_2_percent)
-//     : n(d.additional_charges_vat_2_percent);
-//   const add3VatPct = additionalOverride
-//     ? n(additionalOverride.additional_charges_vat_3_percent)
-//     : n(d.additional_charges_vat_3_percent);
-
-//   // standard VAT
-//   const adminVat = vatAmt(adminFee, d.vat_percent);
-//   const vehicleVat = vatAmt(vehicleHire, d.vehicle_vat_percent);
-//   const insuranceVat = vatAmt(insurance, d.insurance_vat_percent);
-//   const fuelVat = vatAmt(fuel, d.fuel_vat_percent);
-//   const add1Vat = vatAmt(add1, add1VatPct);
-//   const add2Vat = vatAmt(add2, add2VatPct);
-//   const add3Vat = vatAmt(add3, add3VatPct);
-
-//   // docket VAT
-//   const docketTotalVat = vatAmt(docketTotal, d.docket_total_vat_percent);
-
-//   // carry forward charges
-//   const cfAdmin = n(draftInvoice.carry_forward_admin_fee ?? 0);
-//   const cfVeh = n(draftInvoice.carry_forward_vehicle_hire_charge);
-//   const cfIns = n(draftInvoice.carry_forward_insurance_charge);
-//   const cfFuel = n(draftInvoice.carry_forward_fuel_charge);
-//   const cfAdd1 = n(draftInvoice.carry_forward_additional_charge_1);
-//   const cfAdd2 = n(draftInvoice.carry_forward_additional_charge_2);
-//   const cfAdd3 = n(draftInvoice.carry_forward_additional_charge_3);
-
-//   // carry forward VAT
-//   const cfAdminVat = vatAmt(cfAdmin, draftInvoice.carry_forward_admin_vat_percent);
-//   const cfVehVat = vatAmt(cfVeh, draftInvoice.carry_forward_vehicle_vat_percent);
-//   const cfInsVat = vatAmt(cfIns, draftInvoice.carry_forward_insurance_vat_percent);
-//   const cfFuelVat = vatAmt(cfFuel, draftInvoice.carry_forward_fuel_vat_percent);
-//   const cfAdd1Vat = vatAmt(
-//     cfAdd1,
-//     draftInvoice.carry_forward_additional_charge_1_vat_percent,
-//   );
-//   const cfAdd2Vat = vatAmt(
-//     cfAdd2,
-//     draftInvoice.carry_forward_additional_charge_2_vat_percent,
-//   );
-//   const cfAdd3Vat = vatAmt(
-//     cfAdd3,
-//     draftInvoice.carry_forward_additional_charge_3_vat_percent,
-//   );
-
-//   const cfTotal = cfAdmin + cfVeh + cfIns + cfFuel + cfAdd1 + cfAdd2 + cfAdd3;
-//   const cfVatTotal =
-//     cfAdminVat +
-//     cfVehVat +
-//     cfInsVat +
-//     cfFuelVat +
-//     cfAdd1Vat +
-//     cfAdd2Vat +
-//     cfAdd3Vat;
-
-//   const standardVatTotal =
-//     adminVat +
-//     vehicleVat +
-//     insuranceVat +
-//     fuelVat +
-//     add1Vat +
-//     add2Vat +
-//     add3Vat +
-//     cfVatTotal;
-
-//   const standardChargeTotal =
-//     adminFee + vehicleHire + insurance + fuel + add1 + add2 + add3 + cfTotal;
-
-//   // manualDockets is pre-normalized; n() coerces string values like "78" → 78
-//   const manualDriverTotal = manualDockets.reduce(
-//     (s, m) => s + n(m.driver_total),
-//     0,
-//   );
-
-//   const finalTaxDeduction =
-//     standardVatTotal + standardChargeTotal - (manualDriverTotal + docketTotalVat);
-
-//   const finalTotal = docketTotal - finalTaxDeduction;
-
-//   return {
-//     // standard
-//     adminFee,
-//     adminVat,
-//     adminVatPct: n(d.vat_percent),
-//     vehicleHire,
-//     vehicleVat,
-//     vehicleVatPct: n(d.vehicle_vat_percent),
-//     insurance,
-//     insuranceVat,
-//     insuranceVatPct: n(d.insurance_vat_percent),
-//     fuel,
-//     fuelVat,
-//     fuelVatPct: n(d.fuel_vat_percent),
-//     add1,
-//     add1Vat,
-//     add1VatPct,
-//     add2,
-//     add2Vat,
-//     add2VatPct,
-//     add3,
-//     add3Vat,
-//     add3VatPct,
-//     // docket VAT
-//     docketTotalVat,
-//     docketTotalVatPct: n(d.docket_total_vat_percent),
-//     // carry forward
-//     cfAdmin,
-//     cfAdminVat,
-//     cfAdminVatPct: n(draftInvoice.carry_forward_admin_vat_percent),
-//     cfVeh,
-//     cfVehVat,
-//     cfVehVatPct: n(draftInvoice.carry_forward_vehicle_vat_percent),
-//     cfIns,
-//     cfInsVat,
-//     cfInsVatPct: n(draftInvoice.carry_forward_insurance_vat_percent),
-//     cfFuel,
-//     cfFuelVat,
-//     cfFuelVatPct: n(draftInvoice.carry_forward_fuel_vat_percent),
-//     cfAdd1,
-//     cfAdd1Vat,
-//     cfAdd1VatPct: n(draftInvoice.carry_forward_additional_charge_1_vat_percent),
-//     cfAdd2,
-//     cfAdd2Vat,
-//     cfAdd2VatPct: n(draftInvoice.carry_forward_additional_charge_2_vat_percent),
-//     cfAdd3,
-//     cfAdd3Vat,
-//     cfAdd3VatPct: n(draftInvoice.carry_forward_additional_charge_3_vat_percent),
-//     cfTotal,
-//     cfVatTotal,
-//     // totals
-//     standardChargeTotal,
-//     standardVatTotal,
-//     manualDriverTotal,
-//     finalTaxDeduction: round2(finalTaxDeduction),
-//     finalTotal: round2(finalTotal),
-//   };
-// }
 
 // ─── sub-components ─────────────────────────────────────────────────────────
 
@@ -458,7 +290,7 @@ function SectionHead({ children }) {
 
 function Invoices() {
   const router = useRouter();
-
+const [bulkFinalizing,setBulkFinalizing]=useState(false)
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -644,6 +476,70 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
     setSelectedInvoices((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
+  };
+const handleBulkFinalizeInvoice = async () => {
+    if (selectedInvoices.length === 0) {
+      toast.error("Please select invoices to finalize");
+      return;
+    }
+
+    const alreadyFinalIds = invoices
+      .filter((inv) => selectedInvoices.includes(inv.id) && inv.status === "FINAL")
+      .map((inv) => inv.id);
+    const invoiceIdsToFinalize = selectedInvoices.filter(
+      (id) => !alreadyFinalIds.includes(id),
+    );
+
+    if (alreadyFinalIds.length > 0) {
+      toast.error(
+        alreadyFinalIds.length === selectedInvoices.length
+          ? "Selected invoice(s) are already Finalized"
+          : `${alreadyFinalIds.length} selected invoice(s) are already Finalized and will be skipped`,
+      );
+    }
+
+    if (invoiceIdsToFinalize.length === 0) {
+      return;
+    }
+
+    try {
+      setBulkFinalizing(true);
+      const response = await bulkGenerateFinalInvoice({
+        invoiceIds: invoiceIdsToFinalize,
+      });
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+          `${invoiceIdsToFinalize.length} invoice(s) finalized`,
+        );
+      } else {
+        const { successCount, failureCount, failed } =
+          response?.data?.data || {};
+        if (successCount > 0) {
+          toast.success(`${successCount} invoice(s) finalized`);
+        }
+        if (failureCount > 0) {
+          toast.error(
+            `${failureCount} invoice(s) failed to finalize` +
+            (failed?.[0]?.message ? `: ${failed[0].message}` : ""),
+          );
+        }
+        if (!successCount && !failureCount) {
+          toast.error(response?.data?.message || "Bulk finalize failed");
+        }
+      }
+
+      setSelectedInvoices([]);
+      setSelectAll(false);
+      fetchInvoicesData();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to finalize invoices",
+      );
+    } finally {
+      setBulkFinalizing(false);
+    }
   };
 
   const handleBulkMarkAsPaid = async () => {
@@ -1065,7 +961,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
 
       <section>
         {/* ── filter bar ── */}
-        <div className="flex flex-wrap xl:flex-nowrap items-center justify-between gap-[20px] mb-6">
+        <div className="flex flex-col flex-wrap xl:flex-nowrap  justify-between gap-[20px] mb-6">
           <div className="flex flex-col items-start sm:flex-row sm:items-center flex-wrap xl:flex-nowrap gap-[20px] w-full xl:w-[70%]">
             <span className="text-[20px] font-bold">Filter:</span>
             <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
@@ -1124,13 +1020,19 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                 </svg>
               </button>
             </div>
+           
+
+          </div>
+           
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
             {selectedInvoices.length > 0 && (
-              <button
-                onClick={handleBulkMarkAsPaid}
-                disabled={bulkUpdating}
+              <>
+               <button
+                onClick={handleBulkFinalizeInvoice}
+                disabled={bulkFinalizing}
                 className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {bulkUpdating ? (
+                {bulkFinalizing ? (
                   <svg
                     className="animate-spin h-4 w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"
@@ -1166,11 +1068,13 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                     />
                   </svg>
                 )}
-                Mark Paid ({selectedInvoices.length})
+                Finalize ({selectedInvoices.length})
               </button>
-            )}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+              </>
+             
               
+
+            )}
               <button
                 onClick={() => setIsBankRemittanceModalOpen(true)}
                 className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-primary border border-primary hover:bg-primary/20 hover:text-primary duration-300 w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white cursor-pointer transition"
@@ -1273,7 +1177,6 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
                 : "Generate Weekly Invoice"}
             </button>
             </div>
-          </div>
         </div>
 
         {/* ── entries-per-page + count ── */}

@@ -532,7 +532,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
       const search = String(filters.search).trim();
       const isNumeric = !isNaN(search);
 
-      where.OR = [
+      const searchConditions = [
         {
           driver: {
             name: {
@@ -550,6 +550,36 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
           },
         },
       ];
+
+      if (/^\d+$/.test(search)) {
+        const matchingInvoices = await prisma.invoice.aggregateRaw({
+          pipeline: [
+            {
+              $addFields: {
+                generated_id_string: { $toString: "$generated_id" },
+              },
+            },
+            {
+              $match: {
+                generated_id_string: { $regex: search },
+              },
+            },
+            { $project: { generated_id: 1 } },
+          ],
+        });
+
+        const matchingGeneratedIds = matchingInvoices.map(
+          (invoice) => invoice.generated_id,
+        );
+
+        if (matchingGeneratedIds.length > 0) {
+          searchConditions.push({
+            generated_id: { in: matchingGeneratedIds },
+          });
+        }
+      }
+
+      where.OR = searchConditions;
 
       if (isNumeric) {
         where.OR.push({
@@ -1554,8 +1584,8 @@ export const generateInvoiceSummaryService = async ({
       driverName: invoice.driver?.name || "",
       invoiceNumber: invoice.generated_id || "",
       jobs: invoice.total_number_of_dockets || 0,
-      bankUserName:invoice.driver?.bank_user_name || "",
-      sageName:invoice.driver?.sage_name || "",
+      bankUserName: invoice.driver?.bank_user_name || "",
+      sageName: invoice.driver?.sage_name || "",
       debtAmount: invoice.net_amount || 0,
       taxAmount,
       total: invoice.final_total || 0,

@@ -4,6 +4,7 @@ import { runWeeklySelfInvoiceBatch } from "../../workers/selfInvoice/Weeklyselfi
 
 import {
   deleteInvoiceService,
+  bulkGenerateFinalInvoiceService,
   generateWeeklyInvoice,
   getAllInvoiceService,
   getInvoiceByIdService,
@@ -397,6 +398,40 @@ export async function bulkUpdateInvoicesToPaid(req, res) {
     }
 
     const result = await bulkUpdateInvoicesToPaidService(invoiceIds);
+
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    });
+  }
+}
+
+
+export async function bulkGenerateFinalInvoice(req, res) {
+  try {
+    const { invoiceIds } = req.body;
+
+    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice IDs are required",
+      });
+    }
+
+    const invalidIds = invoiceIds.filter((id) => !validateObjectId(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: `Invalid invoice ID format: ${invalidIds.join(", ")}`,
+      });
+    }
+
+    const result = await bulkGenerateFinalInvoiceService(invoiceIds);
 
     return res.status(result.statusCode).json(result);
   } catch (error) {

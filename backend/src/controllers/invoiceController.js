@@ -124,7 +124,7 @@ export async function generateInvoice(req, res) {
         error: err.message,
       });
     }
-  }
+  } 
 }
 
 export async function getAllInvoice(req, res) {

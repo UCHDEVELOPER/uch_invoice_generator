@@ -233,7 +233,7 @@ export default function DriverProfileEdit() {
 
   const handleAddDocket = () => {
     if (manualDockets.length >= 40) {
-      toast.error("Maximum 10 dockets allowed");
+      toast.error("Maximum 40 dockets allowed");
       return;
     }
     setManualDockets([
@@ -1165,7 +1165,7 @@ export default function DriverProfileEdit() {
           <div className="flex justify-between items-center mb-[20px]">
             <div>
               <p className="text-sm text-gray-600 font-semibold">
-                Total Dockets: {manualDockets.length}/10
+                Total Dockets: {manualDockets.length}/40
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Edit existing dockets or add new ones below

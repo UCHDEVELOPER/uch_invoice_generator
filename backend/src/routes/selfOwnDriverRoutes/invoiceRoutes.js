@@ -2,7 +2,7 @@ import express from "express";
 import { generateInvoice } from "../../controllers/invoiceController.js";
 import { verifyToken } from "../../utils/jwt.js";
 import { missingIdResponse } from "../../controllers/commonController.js";
-import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary ,generateWeeklyInvoiceClick, bulkUpdateInvoicesToPaid } from "../../controllers/selfOwnDriverControllers/invoiceController.js";
+import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary ,generateWeeklyInvoiceClick, bulkUpdateInvoicesToPaid, bulkGenerateFinalInvoice } from "../../controllers/selfOwnDriverControllers/invoiceController.js";
 import { generatePdf } from "../../controllers/selfOwnDriverControllers/invoicePdfController.js";
 import { generateCsv } from "../../controllers/selfOwnDriverControllers/invoiceCsvController.js";
 
@@ -38,5 +38,8 @@ router.post("/regenerate-invoice", verifyToken, redraftInvoice);
 router.post("/generate-detailed-invoice-summary", verifyToken, generateDetailedInvoiceSummary);
 
 router.post("/bulk-update-invoices-to-paid", verifyToken, bulkUpdateInvoicesToPaid);
+
+router.post("/bulk-generate-final-invoice", verifyToken, bulkGenerateFinalInvoice);
+
 
 export default router;
