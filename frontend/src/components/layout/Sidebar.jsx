@@ -23,6 +23,9 @@ function Sidebar({ collapsed, setCollapsed }) {
   const isDriverPositionsActive = pathname === "/driver-positions";
   const isJobActive = pathname === "/job-management" || pathname === "/job-management/add";
   const isInvoiceActive = pathname === "/invoices";
+  const isBatchActive = pathname === "/batch-management";
+  const isBatchDetailActive = pathname.startsWith("/batch-management/");
+
   const isSettingsActive = pathname === "/settings";
 
   // Active states — self-own
@@ -31,6 +34,8 @@ function Sidebar({ collapsed, setCollapsed }) {
   const isSelfOwnDriverPositionsActive = pathname === "/self-own/driver-positions";
   const isSelfOwnJobActive = pathname.startsWith("/self-own/job-management");
   const isSelfOwnInvoiceActive = pathname.startsWith("/self-own/invoices");
+  const isSelfOwnBatchActive = pathname === "/self-own/batch-management";
+  const isSelfOwnBatchDetailActive = pathname.startsWith("/self-own/batch-management/");
   const isSelfOwnSettingsActive = pathname === "/self-own/settings";
 
   const handleLogout = async () => {
@@ -52,6 +57,8 @@ function Sidebar({ collapsed, setCollapsed }) {
   const driverPositionsActive = isSelfOwn ? isSelfOwnDriverPositionsActive : isDriverPositionsActive;
   const jobActive = isSelfOwn ? isSelfOwnJobActive : isJobActive;
   const invoiceActive = isSelfOwn ? isSelfOwnInvoiceActive : isInvoiceActive;
+  const batchActive = isSelfOwn ? isSelfOwnBatchActive : isBatchActive;
+  const batchDetailActive = isSelfOwn ? isSelfOwnBatchDetailActive : isBatchDetailActive;
   const settingsActive = isSettingsActive;
 
   // Choose links based on section
@@ -60,33 +67,30 @@ function Sidebar({ collapsed, setCollapsed }) {
   const driverPositionsLink = isSelfOwn ? "/self-own/driver-positions" : "/driver-positions";
   const jobLink = isSelfOwn ? "/self-own/job-management" : "/job-management";
   const invoiceLink = isSelfOwn ? "/self-own/invoices" : "/invoices";
+  const batchLink = isSelfOwn ? "/self-own/batch-management" : "/batch-management";
   const settingsLink = "/settings";
 
   return (
     <aside
-      className={`${
-        collapsed ? "w-[100px] 2xl:w-[112px]" : "w-[250px] 2xl:w-[374px]"
-      } bg-primary h-screen duration-300 overflow-hidden`}
+      className={`${collapsed ? "w-[100px] 2xl:w-[112px]" : "w-[250px] 2xl:w-[374px]"
+        } bg-primary h-screen duration-300 overflow-hidden`}
     >
       <div
-        className={`${
-          collapsed ? "px-[5px]" : "px-[30px] mx-[10px] 2xl:mx-[15px]"
-        } duration-300 py-[5px] h-[80px] 2xl:h-[120px] flex items-center justify-center border-b border-[#FFFFFF33]`}
+        className={`${collapsed ? "px-[5px]" : "px-[30px] mx-[10px] 2xl:mx-[15px]"
+          } duration-300 py-[5px] h-[80px] 2xl:h-[120px] flex items-center justify-center border-b border-[#FFFFFF33]`}
       >
         <Image
           src="/img/logo.png"
           alt="Logo"
           width={300}
           height={300}
-          className={`${
-            collapsed ? "2xl:w-[90px] w-[80px]" : "w-[120px] 2xl:w-[165px]"
-          } duration-300`}
+          className={`${collapsed ? "2xl:w-[90px] w-[80px]" : "w-[120px] 2xl:w-[165px]"
+            } duration-300`}
         />
       </div>
       <div
-        className={`${
-          collapsed ? "pl-[20px]" : "pl-[20px] 2xl:pl-[55px]"
-        } py-[50px] 2xl:h-[calc(100vh-220px)] h-[calc(100vh-180px)] duration-300`}
+        className={`${collapsed ? "pl-[20px]" : "pl-[20px] 2xl:pl-[55px]"
+          } py-[50px] 2xl:h-[calc(100vh-220px)] h-[calc(100vh-180px)] duration-300`}
       >
         <nav className="space-y-[10px]">
           {/* Dashboard */}
@@ -105,9 +109,8 @@ function Sidebar({ collapsed, setCollapsed }) {
               <svg className="w-[18px] h-[18px]" viewBox="0 0 18 18" fill="none">
                 <path
                   d="M17.6918 9.24483L9.62669 0.283622C9.28706 -0.0945407 8.63468 -0.0945407 8.29505 0.283622L0.229969 9.24483C0.114083 9.37362 0.0380173 9.53325 0.0109797 9.70438C-0.0160578 9.87551 0.00709263 10.0508 0.0776284 10.2091C0.221008 10.5326 0.541819 10.7405 0.895787 10.7405H2.68803V17.0133C2.68803 17.251 2.78244 17.4789 2.9505 17.6469C3.11855 17.815 3.34648 17.9094 3.58415 17.9094H6.27251C6.51018 17.9094 6.73811 17.815 6.90616 17.6469C7.07422 17.4789 7.16863 17.251 7.16863 17.0133V13.4288H10.7531V17.0133C10.7531 17.251 10.8475 17.4789 11.0156 17.6469C11.1836 17.815 11.4116 17.9094 11.6492 17.9094H14.3376C14.5753 17.9094 14.8032 17.815 14.9713 17.6469C15.1393 17.4789 15.2337 17.251 15.2337 17.0133V10.7405H17.026C17.1995 10.7412 17.3695 10.6914 17.5153 10.5972C17.661 10.503 17.7762 10.3684 17.8468 10.2099C17.9174 10.0513 17.9403 9.87564 17.9128 9.70429C17.8853 9.53294 17.8085 9.37329 17.6918 9.24483Z"
-                  className={`duration-300 ${
-                    dashboardActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"
-                  }`}
+                  className={`duration-300 ${dashboardActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"
+                    }`}
                 />
               </svg>
             </span>
@@ -130,9 +133,8 @@ function Sidebar({ collapsed, setCollapsed }) {
               <svg className="w-[18px] h-[18px]" width="21" height="15" viewBox="0 0 21 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M1.90909 0C0.854698 0 0 0.859101 0 1.9091V11.4546V12.4091C0 13.4591 0.854698 14.3182 1.90909 14.3182H17.1818H19.0909C20.1457 14.3182 21 13.4591 21 12.4091V11.4546V2.86364V1.9091C21 0.859101 20.1457 0 19.0909 0H17.1818H3.81818H1.90909ZM2.86364 1.9091H8.59091C9.11782 1.9091 9.54545 2.33645 9.54545 2.86364V10.321C8.8725 10.0347 8.23119 9.64687 7.48721 9.45598C7.04583 9.45598 6.8658 9.15171 6.83096 8.76988C7.44464 8.2926 7.77477 7.53495 7.99432 6.77131C8.33757 6.48495 8.59286 5.72132 8.14346 5.3395C7.92315 4.95768 7.91103 4.47443 7.60653 3.99717C7.20362 3.42444 6.49081 2.95313 5.72727 2.95313C5.09202 2.95313 4.48884 3.34689 4.05682 3.72871C3.6876 4.20598 3.47855 4.67728 3.34091 5.25002C2.93847 5.63183 2.98353 6.21052 3.28125 6.59235C3.59596 6.97416 3.57916 7.45739 3.81818 7.93467C3.91764 8.3165 4.50445 8.59687 4.50426 8.97871C4.64658 9.64687 3.82973 9.44404 3.46023 9.63496C2.94486 9.82587 2.27373 10.0287 1.90909 10.4105V2.86364C1.90909 2.33645 2.33644 1.9091 2.86364 1.9091ZM11.4545 2.86364H15.2727V3.81819H11.4545V2.86364ZM11.4545 4.77273H18.1364V5.72727H11.4545V4.77273ZM11.4545 6.68183H18.1364V7.63636H11.4545V6.68183Z"
-                  className={`duration-300 ${
-                    driverActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"
-                  }`}
+                  className={`duration-300 ${driverActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"
+                    }`}
                 />
               </svg>
             </span>
@@ -194,7 +196,7 @@ function Sidebar({ collapsed, setCollapsed }) {
           </Link>
 
           {/* Invoices */}
-          <Link
+          {/* <Link
             href={invoiceLink}
             className={`
               ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px]"}
@@ -212,29 +214,79 @@ function Sidebar({ collapsed, setCollapsed }) {
               </svg>
             </span>
             Invoices
-          </Link>
+          </Link> */}
 
-          {/* Settings */}
-          {!isSelfOwn && (
-            <Link
-            href={settingsLink}
+          {/* Batch Management */}
+          <Link
+            href={batchLink}
             className={`
               ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px]"}
               flex items-center whitespace-nowrap 2xl:text-[20px] hover:font-black
               rounded-l-[170px] p-[10px] pr-[20px] duration-300 text-white group
-              ${settingsActive ? "bg-[#C00000] font-black" : "hover:bg-[#C00000]"}`}
+              ${batchActive ? "bg-[#C00000] font-black" : "hover:bg-[#C00000]"}`}
           >
             <span
               className={`border border-white p-[10px] flex items-center justify-center min-w-[40px] min-h-[40px] 2xl:min-w-[46px] 2xl:min-h-[46px] w-[40px] h-[40px] 2xl:w-[46px] 2xl:h-[46px] rounded-full duration-300
-                ${settingsActive ? "bg-white" : "group-hover:bg-white"}`}
+                ${batchActive ? "bg-white" : "group-hover:bg-white"}`}
             >
-              <svg className="w-[18px] h-[18px]" width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16.5069 11.1823L15.5487 10.587C14.3719 9.8566 14.3719 8.14334 15.5487 7.41297L16.5076 6.81768C16.9965 6.51457 17.1464 5.87162 16.8434 5.38336L15.4417 3.12486C15.1388 2.63582 14.4961 2.48583 14.008 2.78893L13.7222 2.96627C12.4783 3.7389 10.8704 2.84362 10.8704 1.37884V1.04213C10.8704 0.466379 10.4042 0 9.82868 0H7.17132C6.59581 0 6.12963 0.466379 6.12963 1.04213V1.37884C6.12963 2.84361 4.52101 3.73894 3.27777 2.96627L2.99196 2.78893C2.50313 2.48583 1.86125 2.63582 1.55825 3.12486L0.156572 5.38336C-0.146406 5.8724 0.00352003 6.51455 0.492355 6.81768L1.45051 7.41297C2.62729 8.1434 2.62729 9.85666 1.45051 10.587L0.492355 11.1823C0.00352399 11.4854 -0.146406 12.1284 0.156572 12.6166L1.55825 14.8751C1.86123 15.3642 2.50391 15.5142 2.99196 15.2111L3.27777 15.0337C4.52173 14.2611 6.12963 15.1564 6.12963 16.6212V16.9579C6.12963 17.5336 6.59581 18 7.17132 18H9.82868C10.4042 18 10.8704 17.5336 10.8704 16.9579V16.6212C10.8704 15.1564 12.4782 14.2611 13.7222 15.0337L14.008 15.2111C14.4969 15.5142 15.1387 15.3642 15.4417 14.8751L16.8434 12.6166C17.1464 12.1276 16.9965 11.4854 16.5076 11.1823ZM8.49882 12.2542C6.702 12.2542 5.24575 10.7972 5.24575 8.9997C5.24575 7.20222 6.7021 5.74524 8.49882 5.74524C10.2955 5.74524 11.7519 7.20222 11.7519 8.9997C11.7519 10.7972 10.2955 12.2542 8.49882 12.2542Z"
-                  className={`duration-300 ${settingsActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"}`} />
+              {/* Upgraded Batch / Stacked Layers Icon */}
+              <svg className="w-[18px] h-[18px]" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  className={`duration-300 ${batchActive ? "stroke-secondary fill-secondary/20" : "stroke-white group-hover:stroke-secondary group-hover:fill-secondary/20"}`} />
+                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  className={`duration-300 ${batchActive ? "stroke-secondary" : "stroke-white group-hover:stroke-secondary"}`} />
+                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  className={`duration-300 ${batchActive ? "stroke-secondary" : "stroke-white group-hover:stroke-secondary"}`} />
               </svg>
             </span>
-            Settings
+            Batch Management
           </Link>
+
+          {/* Batch Management → Invoices (shown only on batch detail page) */}
+          {batchDetailActive && (
+            <Link
+              href={pathname}
+              className={`
+      ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px] ml-[30px]"}
+      flex items-center whitespace-nowrap 2xl:text-[18px] text-[15px]
+      rounded-l-[170px] p-[8px] pr-[20px] duration-300 text-white group
+      bg-[#C00000] font-black`}
+            >
+              <span className="border border-white bg-white flex items-center justify-center min-w-[32px] min-h-[32px] w-[32px] h-[32px] rounded-full">
+                {/* Invoice / Receipt Document Icon */}
+                <svg className="w-[16px] h-[16px]" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    className={`duration-300 ${batchDetailActive ? "stroke-secondary fill-secondary/10" : "stroke-white group-hover:stroke-secondary group-hover:fill-secondary/10"}`} />
+                  <polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
+                  <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
+                  <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
+                  <polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
+                </svg>
+              </span>
+              Invoices
+            </Link>
+          )}
+          {/* Settings */}
+          {!isSelfOwn && (
+            <Link
+              href={settingsLink}
+              className={`
+              ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px]"}
+              flex items-center whitespace-nowrap 2xl:text-[20px] hover:font-black
+              rounded-l-[170px] p-[10px] pr-[20px] duration-300 text-white group
+              ${settingsActive ? "bg-[#C00000] font-black" : "hover:bg-[#C00000]"}`}
+            >
+              <span
+                className={`border border-white p-[10px] flex items-center justify-center min-w-[40px] min-h-[40px] 2xl:min-w-[46px] 2xl:min-h-[46px] w-[40px] h-[40px] 2xl:w-[46px] 2xl:h-[46px] rounded-full duration-300
+                ${settingsActive ? "bg-white" : "group-hover:bg-white"}`}
+              >
+                <svg className="w-[18px] h-[18px]" width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16.5069 11.1823L15.5487 10.587C14.3719 9.8566 14.3719 8.14334 15.5487 7.41297L16.5076 6.81768C16.9965 6.51457 17.1464 5.87162 16.8434 5.38336L15.4417 3.12486C15.1388 2.63582 14.4961 2.48583 14.008 2.78893L13.7222 2.96627C12.4783 3.7389 10.8704 2.84362 10.8704 1.37884V1.04213C10.8704 0.466379 10.4042 0 9.82868 0H7.17132C6.59581 0 6.12963 0.466379 6.12963 1.04213V1.37884C6.12963 2.84361 4.52101 3.73894 3.27777 2.96627L2.99196 2.78893C2.50313 2.48583 1.86125 2.63582 1.55825 3.12486L0.156572 5.38336C-0.146406 5.8724 0.00352003 6.51455 0.492355 6.81768L1.45051 7.41297C2.62729 8.1434 2.62729 9.85666 1.45051 10.587L0.492355 11.1823C0.00352399 11.4854 -0.146406 12.1284 0.156572 12.6166L1.55825 14.8751C1.86123 15.3642 2.50391 15.5142 2.99196 15.2111L3.27777 15.0337C4.52173 14.2611 6.12963 15.1564 6.12963 16.6212V16.9579C6.12963 17.5336 6.59581 18 7.17132 18H9.82868C10.4042 18 10.8704 17.5336 10.8704 16.9579V16.6212C10.8704 15.1564 12.4782 14.2611 13.7222 15.0337L14.008 15.2111C14.4969 15.5142 15.1387 15.3642 15.4417 14.8751L16.8434 12.6166C17.1464 12.1276 16.9965 11.4854 16.5076 11.1823ZM8.49882 12.2542C6.702 12.2542 5.24575 10.7972 5.24575 8.9997C5.24575 7.20222 6.7021 5.74524 8.49882 5.74524C10.2955 5.74524 11.7519 7.20222 11.7519 8.9997C11.7519 10.7972 10.2955 12.2542 8.49882 12.2542Z"
+                    className={`duration-300 ${settingsActive ? "fill-secondary" : "fill-white group-hover:fill-secondary"}`} />
+                </svg>
+              </span>
+              Settings
+            </Link>
           )}
         </nav>
       </div>
@@ -266,11 +318,10 @@ function Sidebar({ collapsed, setCollapsed }) {
           </svg>
 
           <span
-            className={`duration-300 ${
-              collapsed
+            className={`duration-300 ${collapsed
                 ? "opacity-0 scale-0 text-[0px]"
                 : "opacity-100 scale 1 text-inherit"
-            }`}
+              }`}
           >
             Logout
           </span>
