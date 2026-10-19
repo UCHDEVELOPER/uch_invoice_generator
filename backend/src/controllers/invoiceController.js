@@ -4,6 +4,7 @@ import {
   deleteInvoiceService,
   generateWeeklyInvoice,
   getAllInvoiceService,
+  getAllInvoiceBatchesService,
   getInvoiceByIdService,
   generateFinalInvoiceService,
   updateInvoiceService,
@@ -129,9 +130,36 @@ export async function generateInvoice(req, res) {
 
 export async function getAllInvoice(req, res) {
   try {
-    const { page, limit, search, from_date, to_date } = req.query;
+    const { page, limit, search, from_date, to_date, batch_id } = req.query;
+    if (batch_id && (typeof batch_id !== "string" || !validateObjectId(batch_id))) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invalid batch ID format",
+      });
+    }
 
     const result = await getAllInvoiceService(page, limit, {
+      search,
+      from_date,
+      to_date,
+      batch_id,
+    });
+
+    return res.status(result.statusCode).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    });
+  }
+}
+
+export async function getAllInvoiceBatches(req, res) {
+  try {
+    const { page, limit, search, from_date, to_date } = req.query;
+    const result = await getAllInvoiceBatchesService(page, limit, {
       search,
       from_date,
       to_date,

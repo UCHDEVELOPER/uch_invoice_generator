@@ -2,7 +2,7 @@ import express from "express";
 import { generateInvoice } from "../../controllers/invoiceController.js";
 import { verifyToken } from "../../utils/jwt.js";
 import { missingIdResponse } from "../../controllers/commonController.js";
-import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary ,generateWeeklyInvoiceClick, bulkUpdateInvoicesToPaid, bulkGenerateFinalInvoice } from "../../controllers/selfOwnDriverControllers/invoiceController.js";
+import { getAllInvoice, getAllInvoiceBatches, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary ,generateWeeklyInvoiceClick, bulkUpdateInvoicesToPaid, bulkGenerateFinalInvoice } from "../../controllers/selfOwnDriverControllers/invoiceController.js";
 import { generatePdf } from "../../controllers/selfOwnDriverControllers/invoicePdfController.js";
 import { generateCsv } from "../../controllers/selfOwnDriverControllers/invoiceCsvController.js";
 
@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.post("/generate-draft-invoice", verifyToken, generateInvoice);
 
+router.get("/get-all-batches", verifyToken, getAllInvoiceBatches);
 router.get("/get-all-invoices", verifyToken, getAllInvoice);
 
 router.get("/get-invoice", verifyToken, missingIdResponse);

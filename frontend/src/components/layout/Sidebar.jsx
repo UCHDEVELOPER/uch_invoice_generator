@@ -22,9 +22,8 @@ function Sidebar({ collapsed, setCollapsed }) {
   const isDriverActive = pathname === "/drivers" || pathname === "/drivers/add" || pathname.startsWith("/drivers/view") || pathname.startsWith("/drivers/edit");
   const isDriverPositionsActive = pathname === "/driver-positions";
   const isJobActive = pathname === "/job-management" || pathname === "/job-management/add";
-  const isInvoiceActive = pathname === "/invoices";
+  const isInvoiceActive = pathname === "/invoices"||pathname.includes('invoices');
   const isBatchActive = pathname === "/batch-management";
-  const isBatchDetailActive = pathname.startsWith("/batch-management/");
 
   const isSettingsActive = pathname === "/settings";
 
@@ -35,7 +34,6 @@ function Sidebar({ collapsed, setCollapsed }) {
   const isSelfOwnJobActive = pathname.startsWith("/self-own/job-management");
   const isSelfOwnInvoiceActive = pathname.startsWith("/self-own/invoices");
   const isSelfOwnBatchActive = pathname === "/self-own/batch-management";
-  const isSelfOwnBatchDetailActive = pathname.startsWith("/self-own/batch-management/");
   const isSelfOwnSettingsActive = pathname === "/self-own/settings";
 
   const handleLogout = async () => {
@@ -58,7 +56,6 @@ function Sidebar({ collapsed, setCollapsed }) {
   const jobActive = isSelfOwn ? isSelfOwnJobActive : isJobActive;
   const invoiceActive = isSelfOwn ? isSelfOwnInvoiceActive : isInvoiceActive;
   const batchActive = isSelfOwn ? isSelfOwnBatchActive : isBatchActive;
-  const batchDetailActive = isSelfOwn ? isSelfOwnBatchDetailActive : isBatchDetailActive;
   const settingsActive = isSettingsActive;
 
   // Choose links based on section
@@ -242,30 +239,35 @@ function Sidebar({ collapsed, setCollapsed }) {
             Batch Management
           </Link>
 
-          {/* Batch Management → Invoices (shown only on batch detail page) */}
-          {batchDetailActive && (
-            <Link
-              href={pathname}
-              className={`
-      ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px] ml-[30px]"}
-      flex items-center whitespace-nowrap 2xl:text-[18px] text-[15px]
-      rounded-l-[170px] p-[8px] pr-[20px] duration-300 text-white group
-      bg-[#C00000] font-black`}
+          {/* Invoice Management */}
+          <Link
+            href={invoiceLink}
+            className={`
+              ${collapsed ? "2xl:gap-[45px] gap-[35px]" : "gap-[10px]"}
+              flex items-center whitespace-nowrap 2xl:text-[20px] hover:font-black
+              rounded-l-[170px] p-[10px] pr-[20px] duration-300 text-white group
+              ${invoiceActive ? "bg-[#C00000] font-black" : "hover:bg-[#C00000]"}`}
+          >
+            <span
+              className={`border border-white p-[10px] flex items-center justify-center min-w-[40px] min-h-[40px] 2xl:min-w-[46px] 2xl:min-h-[46px] w-[40px] h-[40px] 2xl:w-[46px] 2xl:h-[46px] rounded-full duration-300
+                ${invoiceActive ? "bg-white" : "group-hover:bg-white"}`}
             >
-              <span className="border border-white bg-white flex items-center justify-center min-w-[32px] min-h-[32px] w-[32px] h-[32px] rounded-full">
-                {/* Invoice / Receipt Document Icon */}
-                <svg className="w-[16px] h-[16px]" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    className={`duration-300 ${batchDetailActive ? "stroke-secondary fill-secondary/10" : "stroke-white group-hover:stroke-secondary group-hover:fill-secondary/10"}`} />
-                  <polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
-                  <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
-                  <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
-                  <polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="stroke-secondary" />
-                </svg>
-              </span>
-              Invoices
-            </Link>
-          )}
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`duration-300 ${invoiceActive ? "stroke-secondary" : "stroke-white group-hover:stroke-secondary"}`}
+                />
+                <path d="M14 2V8H20M8 13H16M8 17H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  className={`duration-300 ${invoiceActive ? "stroke-secondary" : "stroke-white group-hover:stroke-secondary"}`} />
+              </svg>
+            </span>
+            Invoice Management
+          </Link>
+
           {/* Settings */}
           {!isSelfOwn && (
             <Link

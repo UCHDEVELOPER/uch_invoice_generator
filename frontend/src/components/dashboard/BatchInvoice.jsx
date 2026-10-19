@@ -1,60 +1,100 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { calculatePageNumbers } from "@/utils/helpers";
-
-// ── Dummy data (replace with API call later) ────────────────────────────────
-const DUMMY_BATCHES = Array.from({ length: 27 }, (_, i) => {
-  const start = new Date(2025, 0, 1 + i * 7); // every 7 days
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  const pad = (n) => String(n).padStart(2, "0");
-  const toISO = (d) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return {
-    id: `BATCH${String(1000 + i + 1)}`,
-    start_date: toISO(start),
-    end_date: toISO(end),
-  };
-});
+import { fetchAllInvoiceBatches as fetchRegularBatches } from "@/lib/api/invoice.api";
+import { fetchAllInvoiceBatches as fetchSelfOwnBatches } from "@/lib/api/self-own/invoice.api";
 
 export default function BatchInvoice() {
   const router = useRouter();
+  const pathname = usePathname();
+  const isSelfOwn = pathname.startsWith("/self-own");
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const pathname = usePathname();
-
-  const isSelfOwn = pathname.startsWith("/self-own");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [batches, setBatches] = useState([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    totalPages: 1,
+    hasPrevPage: false,
+    hasNextPage: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // ── Client-side filtering (dummy data) ────────────────────────────────────
-  const filteredBatches = useMemo(() => {
-    return DUMMY_BATCHES.filter((b) => {
-      const matchesSearch =
-        !searchTerm || b.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFrom = !fromDate || b.end_date >= fromDate;
-      const matchesTo = !toDate || b.start_date <= toDate;
-      return matchesSearch && matchesFrom && matchesTo;
-    });
-  }, [searchTerm, fromDate, toDate]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let isCurrentRequest = true;
 
-  // ── Client-side pagination ────────────────────────────────────────────────
-  const totalCount = filteredBatches.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  const pagination = {
-    hasPrevPage: currentPage > 1,
-    hasNextPage: currentPage < totalPages,
-  };
-  const batches = filteredBatches.slice(
-    (currentPage - 1) * limit,
-    currentPage * limit,
-  );
+    const loadBatches = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const fetchBatches = isSelfOwn
+          ? fetchSelfOwnBatches
+          : fetchRegularBatches;
+        const response = await fetchBatches(
+          {
+            page: currentPage,
+            limit,
+            search: searchTerm,
+            from_date: fromDate,
+            to_date: toDate,
+          },
+          controller.signal,
+        );
+
+        if (
+          !response.data?.success ||
+          !Array.isArray(response.data.data) ||
+          !response.data.pagination
+        ) {
+          throw new Error(
+            response.data?.message || "The batch list response was invalid.",
+          );
+        }
+
+        if (isCurrentRequest) {
+          setBatches(response.data.data);
+          setPagination(response.data.pagination);
+        }
+      } catch (requestError) {
+        if (isCurrentRequest && requestError.name !== "CanceledError") {
+          console.error("Failed to fetch invoice batches:", requestError);
+          setError(
+            requestError.response?.data?.message ||
+              requestError.message ||
+              "Unable to load batches.",
+          );
+          setBatches([]);
+          setPagination({
+            totalCount: 0,
+            totalPages: 1,
+            hasPrevPage: false,
+            hasNextPage: false,
+          });
+        }
+      } finally {
+        if (isCurrentRequest) setIsLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(loadBatches, 250);
+    return () => {
+      isCurrentRequest = false;
+      clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [currentPage, fromDate, isSelfOwn, limit, searchTerm, toDate]);
+
+  const totalCount = pagination.totalCount;
+  const totalPages = Math.max(pagination.totalPages || 1, 1);
 
   // Handlers
   const handlePageChange = (page) => {
@@ -209,7 +249,19 @@ export default function BatchInvoice() {
               </tr>
             </thead>
             <tbody className="text-[16px] text-normal text-[#515151]">
-              {batches.length === 0 ? (
+              {isLoading ? (
+                <tr className="bg-white">
+                  <td colSpan={3} className="py-[20px] text-center">
+                    Loading batches...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr className="bg-white">
+                  <td colSpan={3} className="py-[20px] text-center text-red-600">
+                    {error}
+                  </td>
+                </tr>
+              ) : batches.length === 0 ? (
                 <tr className="bg-white">
                   <td colSpan={3} className="py-[20px] text-center">
                     No batches found
@@ -224,16 +276,16 @@ export default function BatchInvoice() {
                     onClick={() =>
                       router.push(
                         isSelfOwn
-                          ? `/self-own/batch-management/${batch.id}`
-                          : `/batch-management/${batch.id}`,
+                          ? `/self-own/invoices/${batch.id}`
+                          : `/invoices/${batch.id}`,
                       )
                     }
                     onKeyDown={(e) => {
                       if (e.key === "Enter")
                         router.push(
                           isSelfOwn
-                            ? `/self-own/batch-management/${batch.id}`
-                            : `/batch-management/${batch.id}`,
+                            ? `/self-own/invoices/${batch.id}`
+                            : `/invoices/${batch.id}`,
                         );
                     }}
                     className="bg-white cursor-pointer hover:bg-gray-50 transition-colors"
@@ -242,11 +294,11 @@ export default function BatchInvoice() {
                       {(currentPage - 1) * limit + index + 1}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap font-semibold text-[#000]">
-                      {batch.id}
+                      {batch.batch_code}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] border-r rounded-r-[15px] whitespace-nowrap">
-                      {formatDate(batch.start_date)} -{" "}
-                      {formatDate(batch.end_date)}
+                      {formatDate(batch.from_date)} -{" "}
+                      {formatDate(batch.to_date)}
                     </td>
                   </tr>
                 ))

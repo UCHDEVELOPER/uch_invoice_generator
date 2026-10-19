@@ -526,6 +526,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
     const skip = (effectivePage - 1) * safeLimit;
 
     const where = {};
+    if (filters.batch_id) where.batch_id = filters.batch_id;
 
     /* ===================== SEARCH ===================== */
     if (filters.search && String(filters.search).trim() !== "") {
@@ -668,6 +669,96 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
   } catch (error) {
     console.log(error.message);
 
+    return {
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    };
+  }
+}
+
+export async function getAllInvoiceBatchesService(page, limit, filters = {}) {
+  try {
+    const safePage = Math.max(Number.parseInt(page, 10) || 1, 1);
+    const safeLimit = Math.min(
+      Math.max(Number.parseInt(limit, 10) || 10, 1),
+      500,
+    );
+    const where = {};
+    const search = String(filters.search ?? "").trim();
+
+    if (search) {
+      where.OR = [{ batch_code: { contains: search, mode: "insensitive" } }];
+      if (/^\d+$/.test(search)) {
+        where.OR.push({ batch_number: Number(search) });
+      }
+    }
+
+    if (filters.from_date) {
+      const fromDate = new Date(`${filters.from_date}T00:00:00.000Z`);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(filters.from_date) ||
+        Number.isNaN(fromDate.getTime()) ||
+        fromDate.toISOString().slice(0, 10) !== filters.from_date
+      ) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: "Invalid from_date. Use YYYY-MM-DD format.",
+        };
+      }
+      where.to_date = { gte: fromDate };
+    }
+
+    if (filters.to_date) {
+      const toDate = new Date(`${filters.to_date}T23:59:59.999Z`);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(filters.to_date) ||
+        Number.isNaN(toDate.getTime()) ||
+        toDate.toISOString().slice(0, 10) !== filters.to_date
+      ) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: "Invalid to_date. Use YYYY-MM-DD format.",
+        };
+      }
+      where.from_date = { lte: toDate };
+    }
+
+    const skip = (safePage - 1) * safeLimit;
+    const [batches, totalCount] = await Promise.all([
+      prisma.invoiceBatch.findMany({
+        where,
+        skip,
+        take: safeLimit,
+        orderBy: [{ from_date: "desc" }, { batch_number: "desc" }],
+        select: {
+          id: true,
+          batch_number: true,
+          batch_code: true,
+          from_date: true,
+          to_date: true,
+        },
+      }),
+      prisma.invoiceBatch.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      statusCode: 200,
+      message: "Invoice batches fetched successfully",
+      data: batches,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / safeLimit),
+        hasNextPage: safePage * safeLimit < totalCount,
+        hasPrevPage: safePage > 1,
+      },
+    };
+  } catch (error) {
     return {
       success: false,
       statusCode: 500,

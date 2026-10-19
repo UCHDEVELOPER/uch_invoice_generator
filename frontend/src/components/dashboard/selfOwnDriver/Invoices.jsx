@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PaidCustomDropdown from "../../layout/PaidCustomDropdown";
 import {
@@ -289,6 +289,9 @@ function SectionHead({ children }) {
 // ─── main component ─────────────────────────────────────────────────────────
 
 function Invoices() {
+  const routeParams = useParams();
+  const batchId =
+    typeof routeParams?.id === "string" ? routeParams.id : undefined;
   const router = useRouter();
 const [bulkFinalizing,setBulkFinalizing]=useState(false)
   const [invoices, setInvoices] = useState([]);
@@ -380,6 +383,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
       if (searchTerm) params.search = searchTerm;
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
+      if (batchId) params.batch_id = batchId;
 
       const response = await fetchAllInvoices(params);
       if (response.data.success) {
@@ -393,7 +397,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
     } finally {
       setLoading(false);
     }
-  }, [currentPage, limit, searchTerm, fromDate, toDate]);
+  }, [batchId, currentPage, limit, searchTerm, fromDate, toDate]);
 
   useEffect(() => {
     fetchInvoicesData();

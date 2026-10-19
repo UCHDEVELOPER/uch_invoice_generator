@@ -5,6 +5,9 @@ export const fetchAllInvoices = (data) =>
     params: data
   });
 
+export const fetchAllInvoiceBatches = (params, signal) =>
+  api.get("/self-own-invoice/get-all-batches", { params, signal });
+
 export const fetchSingleInvoice = (id) =>
   api.get("/self-own-invoice/get-invoice/" + id);
 
