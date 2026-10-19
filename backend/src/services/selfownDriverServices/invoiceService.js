@@ -520,7 +520,21 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
     const skip = (effectivePage - 1) * safeLimit;
 
     const where = {};
-    if (filters.batch_id) where.batch_id = filters.batch_id;
+    if (filters.batch_id) {
+      where.batch_id = filters.batch_id;
+    } else {
+      const latestInvoice = await prisma.selfInvoice.findFirst({
+        orderBy: [{ start_date: "desc" }, { end_date: "desc" }],
+        select: { start_date: true, end_date: true },
+      });
+
+      if (latestInvoice) {
+        where.AND = [
+          { start_date: latestInvoice.start_date },
+          { end_date: latestInvoice.end_date },
+        ];
+      }
+    }
 
     /* ===================== SEARCH ===================== */
     if (filters.search && String(filters.search).trim() !== "") {

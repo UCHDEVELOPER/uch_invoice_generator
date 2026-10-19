@@ -424,7 +424,6 @@ export async function redraftInvoice(req, res) {
     }
 
     const result = await redraftInvoiceService(invoiceId);
-
     return res.status(result.statusCode).json({
       success: result.success,
       statusCode: result.statusCode,

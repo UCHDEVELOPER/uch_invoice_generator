@@ -526,7 +526,21 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
     const skip = (effectivePage - 1) * safeLimit;
 
     const where = {};
-    if (filters.batch_id) where.batch_id = filters.batch_id;
+    if (filters.batch_id) {
+      where.batch_id = filters.batch_id;
+    } else {
+      const latestInvoice = await prisma.invoice.findFirst({
+        orderBy: [{ start_date: "desc" }, { end_date: "desc" }],
+        select: { start_date: true, end_date: true },
+      });
+
+      if (latestInvoice) {
+        where.AND = [
+          { start_date: latestInvoice.start_date },
+          { end_date: latestInvoice.end_date },
+        ];
+      }
+    }
 
     /* ===================== SEARCH ===================== */
     if (filters.search && String(filters.search).trim() !== "") {
@@ -1224,8 +1238,12 @@ export async function generateFinalInvoiceService(payload) {
   // Calculate required amounts
   // ──────────────────────────────────────────────────────────────────────
 
-  const hourlyRate = Number(invoice.driver.per_hour_rate ?? 0);
-  const totalHours = Number(invoice.driver.total_hours ?? 0);
+  const hourlyRate = Number(
+    invoice.old_per_hour_rate ?? invoice.driver.per_hour_rate ?? 0,
+  );
+  const totalHours = Number(
+    invoice.old_total_hours ?? invoice.driver.total_hours ?? 0,
+  );
 
   if (!hourlyRate || !totalHours) {
     return {
