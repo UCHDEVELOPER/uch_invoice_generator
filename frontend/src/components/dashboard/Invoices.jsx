@@ -980,9 +980,9 @@ function Invoices() {
         <div className=" xl:flex-nowrap items-center justify-between gap-[20px] mb-6">
           {/* Left: filters + search */}
           <div className="flex flex-col items-start sm:flex-row sm:items-center flex-wrap xl:flex-nowrap gap-[20px] w-full ">
-            <span className="text-[20px] font-bold">Filter:</span>
+            {/* <span className="text-[20px] font-bold">Filter:</span> */}
 
-            <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
+            {/* <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
               <div className="relative w-full">
                 <input
                   type="date"
@@ -1011,7 +1011,7 @@ function Invoices() {
               >
                 Clear Filter
               </button>
-            </div>
+            </div> */}
 
             <div className="relative w-full lg:max-w-[600px] ">
               <input

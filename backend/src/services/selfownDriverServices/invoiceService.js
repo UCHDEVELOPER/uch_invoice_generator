@@ -518,7 +518,6 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
     const effectivePage = hasSearch ? 1 : Math.max(Number(page) || 1, 1);
     const safeLimit = Math.max(Number(limit) || 10, 1);
     const skip = (effectivePage - 1) * safeLimit;
-
     const where = {};
     if (filters.batch_id) {
       where.batch_id = filters.batch_id;

@@ -967,7 +967,7 @@ const handleBulkFinalizeInvoice = async () => {
         {/* ── filter bar ── */}
         <div className="flex flex-col flex-wrap xl:flex-nowrap  justify-between gap-[20px] mb-6">
           <div className="flex flex-col items-start sm:flex-row sm:items-center flex-wrap xl:flex-nowrap gap-[20px] w-full xl:w-[70%]">
-            <span className="text-[20px] font-bold">Filter:</span>
+            {/* <span className="text-[20px] font-bold">Filter:</span>
             <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
               <div className="relative w-full">
                 <input
@@ -995,7 +995,7 @@ const handleBulkFinalizeInvoice = async () => {
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition"
             >
               Clear Filter
-            </button>
+            </button> */}
             <div className="relative w-full 2xl:min-w-[400px] xl:!min-w-[125px]">
               <input
                 type="text"
@@ -1074,10 +1074,7 @@ const handleBulkFinalizeInvoice = async () => {
                 )}
                 Finalize ({selectedInvoices.length})
               </button>
-              </>
-             
-              
-
+              </>        
             )}
               <button
                 onClick={() => setIsBankRemittanceModalOpen(true)}
