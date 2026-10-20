@@ -540,7 +540,7 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
       const search = String(filters.search).trim();
       const isNumeric = !isNaN(search);
 
-      where.OR = [
+      const searchConditions = [
         {
           driver: {
             name: {
@@ -558,7 +558,34 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
           },
         },
       ];
+      if (/^\d+$/.test(search)) {
+        const matchingInvoices = await prisma.selfInvoice.aggregateRaw({
+          pipeline: [
+            {
+              $addFields: {
+                generated_id_string: { $toString: "$generated_id" },
+              },
+            },
+            {
+              $match: {
+                generated_id_string: { $regex: search },
+              },
+            },
+            { $project: { generated_id: 1 } },
+          ],
+        });
 
+        const matchingGeneratedIds = matchingInvoices.map(
+          (invoice) => invoice.generated_id,
+        );
+
+        if (matchingGeneratedIds.length > 0) {
+          searchConditions.push({
+            generated_id: { in: matchingGeneratedIds },
+          });
+        }
+      }
+      where.OR = searchConditions;
       if (isNumeric) {
         where.OR.push({
           net_amount: Number(search),
@@ -796,18 +823,18 @@ export async function deleteInvoiceService(invoiceId) {
     await prisma.selfInvoice.delete({
       where: { id: invoiceId },
     });
-await prisma.selfInvoice.updateMany({
-  where: {
-    generated_id: {
-      gt: invoice.generated_id,
-    },
-  },
-  data: {
-    generated_id: {
-      decrement: 1,
-    },
-  },
-});
+    await prisma.selfInvoice.updateMany({
+      where: {
+        generated_id: {
+          gt: invoice.generated_id,
+        },
+      },
+      data: {
+        generated_id: {
+          decrement: 1,
+        },
+      },
+    });
     return {
       success: true,
       statusCode: 200,

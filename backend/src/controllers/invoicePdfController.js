@@ -142,7 +142,7 @@ process.on("SIGTERM", async () => {
  * Generate PDF and return URL
  */
 
-export async function generatePdf(req, res) {
+export async function   generatePdf(req, res) {
   const { invoiceId } = req.params;
   let page = null;
 
