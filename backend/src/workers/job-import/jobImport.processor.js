@@ -13,8 +13,19 @@ export async function processBatch(rows, fileType) {
   const logsToCreate = [];
 
   const driverCache = new Map();
+  const normalizedRows = rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).map(([header, value]) => {
+        const normalizedHeader = header.trim();
+        return [
+          normalizedHeader === "Docket No" ? "Docket" : normalizedHeader,
+          value,
+        ];
+      }),
+    ),
+  );
 
-  const docketNumbers = rows
+  const docketNumbers = normalizedRows
     .map((r) => String(r["Docket"] || "").trim())
     .filter(Boolean);
 
@@ -24,8 +35,8 @@ export async function processBatch(rows, fileType) {
   });
 
   const existingDocketSet = new Set(existingJobs.map((j) => j.docket_no));
-
-  for (const row of rows) {
+  console.log(rows)
+  for (const row of normalizedRows) {
     const docket_no = String(row["Docket"] || "").trim();
     if (!docket_no) continue;
 
@@ -112,6 +123,7 @@ export async function processBatch(rows, fileType) {
     }
 
     /* ---------------- JOB PREPARATION ---------------- */
+
     jobsToCreate.push({
       docket_no,
       call_sign: callSign,
