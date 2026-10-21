@@ -526,13 +526,28 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
     const skip = (effectivePage - 1) * safeLimit;
 
     const where = {};
+    if (filters.batch_id) {
+      where.batch_id = filters.batch_id;
+    } else {
+      const latestInvoice = await prisma.invoice.findFirst({
+        orderBy: [{ start_date: "desc" }, { end_date: "desc" }],
+        select: { start_date: true, end_date: true },
+      });
+
+      if (latestInvoice) {
+        where.AND = [
+          { start_date: latestInvoice.start_date },
+          { end_date: latestInvoice.end_date },
+        ];
+      }
+    }
 
     /* ===================== SEARCH ===================== */
     if (filters.search && String(filters.search).trim() !== "") {
       const search = String(filters.search).trim();
       const isNumeric = !isNaN(search);
 
-      where.OR = [
+      const searchConditions = [
         {
           driver: {
             name: {
@@ -550,6 +565,36 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
           },
         },
       ];
+
+      if (/^\d+$/.test(search)) {
+        const matchingInvoices = await prisma.invoice.aggregateRaw({
+          pipeline: [
+            {
+              $addFields: {
+                generated_id_string: { $toString: "$generated_id" },
+              },
+            },
+            {
+              $match: {
+                generated_id_string: { $regex: search },
+              },
+            },
+            { $project: { generated_id: 1 } },
+          ],
+        });
+
+        const matchingGeneratedIds = matchingInvoices.map(
+          (invoice) => invoice.generated_id,
+        );
+
+        if (matchingGeneratedIds.length > 0) {
+          searchConditions.push({
+            generated_id: { in: matchingGeneratedIds },
+          });
+        }
+      }
+
+      where.OR = searchConditions;
 
       if (isNumeric) {
         where.OR.push({
@@ -646,8 +691,99 @@ export async function getAllInvoiceService(page, limit, filters = {}) {
   }
 }
 
+export async function getAllInvoiceBatchesService(page, limit, filters = {}) {
+  try {
+    const safePage = Math.max(Number.parseInt(page, 10) || 1, 1);
+    const safeLimit = Math.min(
+      Math.max(Number.parseInt(limit, 10) || 10, 1),
+      500,
+    );
+    const where = {};
+    const search = String(filters.search ?? "").trim();
+
+    if (search) {
+      where.OR = [{ batch_code: { contains: search, mode: "insensitive" } }];
+      if (/^\d+$/.test(search)) {
+        where.OR.push({ batch_number: Number(search) });
+      }
+    }
+
+    if (filters.from_date) {
+      const fromDate = new Date(`${filters.from_date}T00:00:00.000Z`);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(filters.from_date) ||
+        Number.isNaN(fromDate.getTime()) ||
+        fromDate.toISOString().slice(0, 10) !== filters.from_date
+      ) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: "Invalid from_date. Use YYYY-MM-DD format.",
+        };
+      }
+      where.to_date = { gte: fromDate };
+    }
+
+    if (filters.to_date) {
+      const toDate = new Date(`${filters.to_date}T23:59:59.999Z`);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(filters.to_date) ||
+        Number.isNaN(toDate.getTime()) ||
+        toDate.toISOString().slice(0, 10) !== filters.to_date
+      ) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: "Invalid to_date. Use YYYY-MM-DD format.",
+        };
+      }
+      where.from_date = { lte: toDate };
+    }
+
+    const skip = (safePage - 1) * safeLimit;
+    const [batches, totalCount] = await Promise.all([
+      prisma.invoiceBatch.findMany({
+        where,
+        skip,
+        take: safeLimit,
+        orderBy: [{ from_date: "desc" }, { batch_number: "desc" }],
+        select: {
+          id: true,
+          batch_number: true,
+          batch_code: true,
+          from_date: true,
+          to_date: true,
+        },
+      }),
+      prisma.invoiceBatch.count({ where }),
+    ]);
+
+    return {
+      success: true,
+      statusCode: 200,
+      message: "Invoice batches fetched successfully",
+      data: batches,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / safeLimit),
+        hasNextPage: safePage * safeLimit < totalCount,
+        hasPrevPage: safePage > 1,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      statusCode: 500,
+      message: error.message,
+    };
+  }
+}
+
 export async function getInvoiceByIdService(invoiceId) {
   try {
+    if(!Array.isArray(invoiceId)) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -663,13 +799,39 @@ export async function getInvoiceByIdService(invoiceId) {
         message: "Invoice not found",
       };
     }
-
-    return {
+     return {
       success: true,
       statusCode: 200,
       message: "Invoice fetched successfully",
       data: invoice,
     };
+  }
+   else{
+    const invoices= await prisma.invoice.findMany({
+      where:{
+        id:{in:invoiceId},
+            },
+             include: {
+        jobs: true,
+        driver: true,
+      },
+
+  })
+  if (!invoices) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Invoice not found",
+      };
+    }
+     return {
+      success: true,
+      statusCode: 200,
+      message: "Invoices fetched successfully",
+      data: invoices,
+    };
+}
+   
   } catch (err) {
     return {
       success: false,
@@ -1103,8 +1265,12 @@ export async function generateFinalInvoiceService(payload) {
   // Calculate required amounts
   // ──────────────────────────────────────────────────────────────────────
 
-  const hourlyRate = Number(invoice.driver.per_hour_rate ?? 0);
-  const totalHours = Number(invoice.driver.total_hours ?? 0);
+  const hourlyRate = Number(
+    invoice.old_per_hour_rate ?? invoice.driver.per_hour_rate ?? 0,
+  );
+  const totalHours = Number(
+    invoice.old_total_hours ?? invoice.driver.total_hours ?? 0,
+  );
 
   if (!hourlyRate || !totalHours) {
     return {
@@ -1554,8 +1720,8 @@ export const generateInvoiceSummaryService = async ({
       driverName: invoice.driver?.name || "",
       invoiceNumber: invoice.generated_id || "",
       jobs: invoice.total_number_of_dockets || 0,
-      bankUserName:invoice.driver?.bank_user_name || "",
-      sageName:invoice.driver?.sage_name || "",
+      bankUserName: invoice.driver?.bank_user_name || "",
+      sageName: invoice.driver?.sage_name || "",
       debtAmount: invoice.net_amount || 0,
       taxAmount,
       total: invoice.final_total || 0,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PaidCustomDropdown from "../layout/PaidCustomDropdown";
 import {
@@ -29,9 +29,11 @@ import Loader from "./Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
 import { InvoicePreviewModal } from "./InvoicePreviewModal";
 import { DateRangeModal } from "./DateRangeModal";
-
 function Invoices() {
   const router = useRouter();
+  const routeParams = useParams();
+  const batchId =
+    typeof routeParams?.id === "string" ? routeParams.id : undefined;
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +127,7 @@ function Invoices() {
       if (searchTerm) params.search = searchTerm;
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
+      if (batchId) params.batch_id = batchId;
 
       const response = await fetchAllInvoices(params);
 
@@ -139,7 +142,7 @@ function Invoices() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, limit, searchTerm, fromDate, toDate]);
+  }, [batchId, currentPage, limit, searchTerm, fromDate, toDate]);
 
   useEffect(() => {
     fetchInvoicesData();
@@ -977,9 +980,9 @@ function Invoices() {
         <div className=" xl:flex-nowrap items-center justify-between gap-[20px] mb-6">
           {/* Left: filters + search */}
           <div className="flex flex-col items-start sm:flex-row sm:items-center flex-wrap xl:flex-nowrap gap-[20px] w-full ">
-            <span className="text-[20px] font-bold">Filter:</span>
+            {/* <span className="text-[20px] font-bold">Filter:</span> */}
 
-            <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
+            {/* <div className="flex w-full sm:w-[fit-content] flex-col sm:flex-row md:flex-nowrap flex-wrap items-center gap-[10px]">
               <div className="relative w-full">
                 <input
                   type="date"
@@ -1008,7 +1011,7 @@ function Invoices() {
               >
                 Clear Filter
               </button>
-            </div>
+            </div> */}
 
             <div className="relative w-full lg:max-w-[600px] ">
               <input

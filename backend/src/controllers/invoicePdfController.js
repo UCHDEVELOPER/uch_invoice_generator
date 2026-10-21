@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer-core";
+import AdmZip from "adm-zip";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -6,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generateInvoiceHTML } from "../utils/generateInvoiceHTML.js";
 import {
   getInvoiceByIdService,
-  updateInvoiceService, 
+  updateInvoiceService,
 } from "../services/invoiceService.js";
 import { validateObjectId } from "../helpers/validator.js";
 
@@ -45,7 +46,7 @@ function cleanupOldPdfs() {
         fs.unlinkSync(filePath);
       }
     });
-  } catch (error) {}
+  } catch (error) { }
 }
 
 // Run cleanup every hour
@@ -199,9 +200,9 @@ export async function generatePdf(req, res) {
       }
     }
 
-     const browser = await initBrowser();
+    const browser = await initBrowser();
 
-   
+
 
 
     page = await browser.newPage();
@@ -288,11 +289,164 @@ export async function generatePdf(req, res) {
     if (page) {
       try {
         await page.close();
-      } catch (closeError) {}
+      } catch (closeError) { }
     }
   }
 }
 
+export async function downloadBulkPdf(req, res) {
+  const { ids: invoiceId } = req.body;
+  let page = null;
+
+  try {
+    // Validation
+    if (!invoiceId) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice ID is required",
+      });
+    }
+
+    if (!validateObjectId(invoiceId[0])) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invalid invoice ID format",
+      });
+    }
+
+    // Fetch invoice data
+    const invoiceResponse = await getInvoiceByIdService(invoiceId);
+
+
+    if (!invoiceResponse?.success) {
+      return res.status(invoiceResponse?.statusCode || 404).json({
+        success: false,
+        statusCode: invoiceResponse?.statusCode || 404,
+        message: invoiceResponse?.message || "Invoices not found",
+      });
+    }
+
+    if (!invoiceResponse?.data) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: "Invoices not found",
+      });
+    }
+
+    const invoiceData = invoiceResponse.data;
+    // if (invoiceData.pdf_url) {
+    //   const pdfFilePath = path.join(PDF_STORAGE_DIR, invoiceData.pdf_url);
+    //   if (fs.existsSync(pdfFilePath)) {
+    //     return res.status(200).json({
+    //       success: true,
+    //       statusCode: 200,
+    //       message: "Invoice PDF URL fetched successfully",
+    //       data: {
+    //         url: invoiceData.pdf_url,
+    //       },
+    //     });
+    //   }
+    // }
+
+    const browser = await initBrowser();
+
+
+
+
+    page = await browser.newPage();
+
+    await page.setViewport({
+      width: 1200,
+      height: 800,
+      deviceScaleFactor: 2,
+    });
+ const pdfBuffers = [];
+
+for (const invoice of invoiceData) {
+  const uniqueId = uuidv4();
+  const invoiceNumber = invoice.invoice_number || invoiceId;
+  const filename = `invoice-${invoiceNumber}-${uniqueId}.pdf`;
+
+  const htmlContent = generateInvoiceHTML(invoice);
+
+  if (!htmlContent) {
+    throw new Error("Failed to generate HTML content");
+  }
+
+  await page.setContent(htmlContent, {
+    waitUntil: ["load", "domcontentloaded", "networkidle0"],
+    timeout: 30000,
+  });
+
+  await page.evaluate(() => document.fonts.ready);
+
+  const pdfBuffer = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: {
+      top: "10mm",
+      right: "10mm",
+      bottom: "10mm",
+      left: "10mm",
+    },
+  });
+
+  pdfBuffers.push({
+    fileName: filename,
+    buffer: pdfBuffer,
+  });
+}
+
+
+    const zip = new AdmZip()
+    pdfBuffers.forEach(item => {
+      zip.addFile(item.fileName, item.buffer)
+    })
+    const zipBuffer = zip.toBuffer()
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="invoices.zip"'
+    );
+
+    return res.send(zipBuffer)
+  } catch (error) {
+    if (error.message?.includes("timeout")) {
+      return res.status(504).json({
+        success: false,
+        statusCode: 504,
+        message: "PDF generation timed out",
+      });
+    }
+
+    if (error.message?.includes("Protocol error")) {
+      browserInstance = null;
+      return res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message: "PDF generation failed. Please try again.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message || "Failed to generate PDF",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch (closeError) { }
+    }
+  }
+}
 /**
  * Download PDF directly (optional - keep for backward compatibility)
  */

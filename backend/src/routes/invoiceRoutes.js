@@ -2,12 +2,13 @@ import express from "express";
 import { generateCollectiveInvoiceSummary, generateInvoice } from "../controllers/invoiceController.js";
 import { verifyToken } from "../utils/jwt.js";
 import { missingIdResponse } from "../controllers/commonController.js";
-import { getAllInvoice, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary , bulkRedraftInvoice  , bulkGenerateFinalInvoice,generateWeeklyInvoiceClick,tempGenerateWeeklyInvoiceClick} from "../controllers/invoiceController.js";
-import { generatePdf } from "../controllers/invoicePdfController.js";
+import { getAllInvoice, getAllInvoiceBatches, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary , bulkUpdateInvoicesToPaid, generateCollectiveBankRemittance, generateCollectiveDetailedInvoiceSummary , bulkRedraftInvoice  , bulkGenerateFinalInvoice,generateWeeklyInvoiceClick,tempGenerateWeeklyInvoiceClick} from "../controllers/invoiceController.js";
+import { downloadBulkPdf, generatePdf } from "../controllers/invoicePdfController.js";
 import { generateCsv } from "../controllers/invoiceCsvController.js";
 
 const router = express.Router();
 
+router.get("/get-all-batches", verifyToken, getAllInvoiceBatches);
 router.get("/get-all-invoices", verifyToken, getAllInvoice);
 
 router.get("/get-invoice", verifyToken, missingIdResponse);
@@ -23,8 +24,10 @@ router.get("/generate-weekly-invoice-temp",tempGenerateWeeklyInvoiceClick)
 router.patch("/update-invoice", verifyToken, missingIdResponse);
 router.patch("/update-invoice/:id", verifyToken, updateInvoice);
 
-router.get("/pdf/:invoiceId", verifyToken, generatePdf);
+router.get("/pdf/:invoiceId",  generatePdf);
 router.get("/csv/:invoiceId", verifyToken, generateCsv);
+
+router.post("/pdf/bulk-download",downloadBulkPdf);
 
 router.post("/generate-bank-remittance" , verifyToken, generateBankRemittance);
 

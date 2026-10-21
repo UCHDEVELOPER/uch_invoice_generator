@@ -13,9 +13,9 @@ export function middleware(req) {
     } 
   }
 
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
+  // if (!token) {
+  //   return NextResponse.redirect(new URL("/login", req.url));
+  // }
 
   return NextResponse.next();
 }

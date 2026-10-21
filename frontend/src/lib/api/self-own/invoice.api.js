@@ -5,6 +5,9 @@ export const fetchAllInvoices = (data) =>
     params: data
   });
 
+export const fetchAllInvoiceBatches = (params, signal) =>
+  api.get("/self-own-invoice/get-all-batches", { params, signal });
+
 export const fetchSingleInvoice = (id) =>
   api.get("/self-own-invoice/get-invoice/" + id);
 
@@ -46,3 +49,6 @@ export const getInvoiceCsvUrl = (invoiceId) =>
 
 export const bulkUpdateInvoicesToPaid = (data) =>
     api.post("/self-own-invoice/bulk-update-invoices-to-paid", data);
+
+export const bulkGenerateFinalInvoice = (data) =>
+  api.post("/self-own-invoice/bulk-generate-final-invoice", data);
