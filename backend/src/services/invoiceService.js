@@ -783,6 +783,7 @@ export async function getAllInvoiceBatchesService(page, limit, filters = {}) {
 
 export async function getInvoiceByIdService(invoiceId) {
   try {
+    if(!Array.isArray(invoiceId)) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -798,13 +799,39 @@ export async function getInvoiceByIdService(invoiceId) {
         message: "Invoice not found",
       };
     }
-
-    return {
+     return {
       success: true,
       statusCode: 200,
       message: "Invoice fetched successfully",
       data: invoice,
     };
+  }
+   else{
+    const invoices= await prisma.invoice.findMany({
+      where:{
+        id:{in:invoiceId},
+            },
+             include: {
+        jobs: true,
+        driver: true,
+      },
+
+  })
+  if (!invoices) {
+      return {
+        success: false,
+        statusCode: 404,
+        message: "Invoice not found",
+      };
+    }
+     return {
+      success: true,
+      statusCode: 200,
+      message: "Invoices fetched successfully",
+      data: invoices,
+    };
+}
+   
   } catch (err) {
     return {
       success: false,
