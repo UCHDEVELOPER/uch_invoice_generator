@@ -3,6 +3,7 @@ import { generateInvoice } from "../../controllers/invoiceController.js";
 import { verifyToken } from "../../utils/jwt.js";
 import { missingIdResponse } from "../../controllers/commonController.js";
 import { getAllInvoice, getAllInvoiceBatches, getInvoice, deleteInvoice , generateFinalInvoice , updateInvoice , generateBankRemittance ,generateInvoiceSummary , redraftInvoice , generateDetailedInvoiceSummary ,generateWeeklyInvoiceClick, bulkUpdateInvoicesToPaid, bulkGenerateFinalInvoice } from "../../controllers/selfOwnDriverControllers/invoiceController.js";
+import { downloadBulkPdf } from "../../controllers/selfOwnDriverControllers/invoicePdfController.js";
 import { generatePdf } from "../../controllers/selfOwnDriverControllers/invoicePdfController.js";
 import { generateCsv } from "../../controllers/selfOwnDriverControllers/invoiceCsvController.js";
 
@@ -26,6 +27,7 @@ router.patch("/update-invoice/:id", verifyToken, updateInvoice);
 
 router.get("/pdf/:invoiceId", verifyToken, generatePdf);
 router.get("/csv/:invoiceId", verifyToken, generateCsv);
+router.post("/pdf/bulk-download",downloadBulkPdf);
 
 router.post("/generate-bank-remittance" , verifyToken, generateBankRemittance);
 

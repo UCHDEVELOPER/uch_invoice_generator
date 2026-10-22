@@ -44,7 +44,6 @@ export async function findPendingWeeks(start, end) {
   });
 
   const weekMap = new Map();
-
   for (const job of jobs) {
     const { start, end, week, year } = getWeekRangeFromDate(job.date_time);
     const key = start.toISOString();
@@ -53,7 +52,6 @@ export async function findPendingWeeks(start, end) {
       weekMap.set(key, { start, end, week, year });
     }
   }
-
   return Array.from(weekMap.values()).sort((a, b) => a.start - b.start);
 }
 
