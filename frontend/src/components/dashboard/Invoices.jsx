@@ -23,7 +23,8 @@ import {
   generateCollectiveDetailedInvoiceSummary,
   bulkRegenerateInvoice,
   deleteInvoice,
-  bulkGenerateFinalInvoice
+  bulkGenerateFinalInvoice,
+  downloadBulkInvoicePdfUrl
 } from "@/lib/api/invoice.api";
 import Loader from "./Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -723,32 +724,61 @@ function Invoices() {
   };
 
   const handleDownloadInvoiceAll = async () => {
+    if (selectedInvoices.length === 0) {
+      return toast.error("Please select the invoice(s) to download")
+    }
     try {
-      const finalStatusInvoiceIds = new Set(
-        invoices.filter(inv => inv.status === "FINAL").map(inv => inv.id)
+      setDownloadAll(true)
+      const alreadyFinalIds = invoices
+        .filter((inv) => selectedInvoices.includes(inv.id) && inv.status === "FINAL")
+        .map((inv) => inv.id);
+      const invoiceIdsToFinalize = selectedInvoices.filter(
+        (id) => alreadyFinalIds.includes(id),
       );
 
-      const invoiceIdArray = selectedInvoices?.filter((selInvoiceId) => finalStatusInvoiceIds.has(selInvoiceId))
+      if (alreadyFinalIds.length > 0) {
+        const draftCount = selectedInvoices.length - alreadyFinalIds.length;
+        if (alreadyFinalIds.length === selectedInvoices.length) {
+          toast.success(`${alreadyFinalIds.length}  invoice(s) will be downloaded.`)
+        }
+        else {
+          toast.error(`${alreadyFinalIds.length} selected finalized invoice(s) will be downloaded, while ${draftCount} in draft status will be skipped.`)
+        }
+      }
 
-      // setDownloadingId(invoiceId);
-      // const response = await getInvoicePdfUrl(invoiceId);
-      // if (response?.data?.success && response?.data?.statusCode === 200) {
-      //   window.open(response.data.data.url, "_blank");
-      //   toast.success("Invoice PDF opened successfully");
-      //   return true;
-      // } else {
-      //   toast.error(response?.data?.message || "Failed to download invoice");
-      //   throw new Error(response?.data?.message);
-      // }
+      if (invoiceIdsToFinalize.length === 0) {
+        return toast.error('Please select the invoice(s) with finalize status');
+      }
+      const response = await downloadBulkInvoicePdfUrl(invoiceIdsToFinalize);
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'application/zip' });
+      if (response.status === 200 || response?.data?.statusCode === 200) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'invoices_archive.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Invoices downloaded successfully");
+        setSelectedInvoices([])
+        setDownloadAll(false)
+        return true;
+      } else {
+        toast.error(response?.data?.message || "Failed to download invoice");
+        throw new Error(response?.data?.message);
+      }
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Failed to download invoice",
       );
+      setDownloadAll(false)
       throw error;
     } finally {
-      // setDownloadingId(null);
+      setDownloadAll(false)
     }
   };
+
 
   const handleDownloadInvoiceCsv = async (invoiceId) => {
     try {

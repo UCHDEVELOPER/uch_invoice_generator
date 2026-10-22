@@ -52,3 +52,11 @@ export const bulkUpdateInvoicesToPaid = (data) =>
 
 export const bulkGenerateFinalInvoice = (data) =>
   api.post("/self-own-invoice/bulk-generate-final-invoice", data);
+
+export const downloadBulkSelfOwnInvoicePdfUrl = (invoicesId) =>
+  api.post(`/self-own-invoice/pdf/bulk-download`,
+    {
+      "ids": invoicesId
+    },
+   {responseType : 'blob'}
+  );
