@@ -63,6 +63,7 @@ function Invoices() {
   const [additionalCharges, setAdditionalCharges] = useState(0);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkFinalizing, setBulkFinalizing] = useState(false);
+  const [downloadAll, setDownloadAll] = useState(false)
 
   // Date Range Modal states
   const [isBankRemittanceModalOpen, setIsBankRemittanceModalOpen] =
@@ -620,7 +621,7 @@ function Invoices() {
       if (response?.data?.success) {
         toast.success(
           response.data.message ||
-            "Weekly invoice processing completed successfully",
+          "Weekly invoice processing completed successfully",
         );
         fetchInvoicesData();
       } else {
@@ -721,6 +722,34 @@ function Invoices() {
     }
   };
 
+  const handleDownloadInvoiceAll = async () => {
+    try {
+      const finalStatusInvoiceIds = new Set(
+        invoices.filter(inv => inv.status === "FINAL").map(inv => inv.id)
+      );
+
+      const invoiceIdArray = selectedInvoices?.filter((selInvoiceId) => finalStatusInvoiceIds.has(selInvoiceId))
+
+      // setDownloadingId(invoiceId);
+      // const response = await getInvoicePdfUrl(invoiceId);
+      // if (response?.data?.success && response?.data?.statusCode === 200) {
+      //   window.open(response.data.data.url, "_blank");
+      //   toast.success("Invoice PDF opened successfully");
+      //   return true;
+      // } else {
+      //   toast.error(response?.data?.message || "Failed to download invoice");
+      //   throw new Error(response?.data?.message);
+      // }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to download invoice",
+      );
+      throw error;
+    } finally {
+      // setDownloadingId(null);
+    }
+  };
+
   const handleDownloadInvoiceCsv = async (invoiceId) => {
     try {
       setDownloadingId(invoiceId);
@@ -775,7 +804,7 @@ function Invoices() {
     }
   };
 
-  const handleDeleteInvoice= async (invoiceId) => {
+  const handleDeleteInvoice = async (invoiceId) => {
     try {
       setDeletingId(invoiceId);
       const response = await deleteInvoice(invoiceId);
@@ -1038,7 +1067,7 @@ function Invoices() {
           </div>
 
           {/* Right: bulk action + report buttons */}
-          <div className="w-full flex flex-wrap xl:flex-nowrap items-center mt-5 gap-3 ">
+          <div className="w-full flex flex-wrap  items-center mt-5 gap-3 ">
             {selectedInvoices.length > 0 && (
               <button
                 onClick={handleBulkMarkAsPaid}
@@ -1349,6 +1378,55 @@ function Invoices() {
                 ? "Generating..."
                 : "Generate Weekly Invoice"}
             </button>
+            <button
+              onClick={handleDownloadInvoiceAll}
+              className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloadAll ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 text-[#223581]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>Downloading...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+
+                  <span>Download All</span>
+                </>
+              )
+              }
+            </button>
           </div>
         </div>
 
@@ -1471,7 +1549,7 @@ function Invoices() {
                     <td className="px-[20px] py-[20px] border-y border-[#22358114] whitespace-nowrap">
                       £
                       {Number(
-                         invoice.old_per_hour_rate * invoice.old_total_hours,
+                        invoice.old_per_hour_rate * invoice.old_total_hours,
                       ).toFixed(2)}
                     </td>
                     <td className="px-[20px] py-[20px] border-y border-[#22358114]">
