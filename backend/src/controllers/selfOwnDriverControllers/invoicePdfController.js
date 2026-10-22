@@ -1,3 +1,4 @@
+import AdmZip from "adm-zip";
 import puppeteer from "puppeteer-core";
 import fs from "fs";
 import path from "path";
@@ -334,5 +335,134 @@ export async function downloadPdf(req, res) {
       statusCode: 500,
       message: "Failed to download PDF",
     });
+  }
+}
+
+export async function downloadBulkPdf(req, res) {
+  const { ids } = req.body;
+  let page = null;
+
+  try {
+    // Validation
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invoice IDs array is required",
+      });
+    }
+
+    if (!ids.every((id) => validateObjectId(id))) {
+      return res.status(400).json({
+        success: false,
+        statusCode: 400,
+        message: "Invalid invoice ID format",
+      });
+    }
+
+    // Fetch invoices
+    const invoiceResponse = await getInvoiceByIdService(ids);
+
+    if (!invoiceResponse?.success) {
+      return res.status(invoiceResponse?.statusCode || 404).json({
+        success: false,
+        statusCode: invoiceResponse?.statusCode || 404,
+        message: invoiceResponse?.message || "Invoices not found",
+      });
+    }
+
+    const invoices = invoiceResponse.data;
+
+    if (!Array.isArray(invoices) || invoices.length === 0) {
+      return res.status(404).json({
+        success: false,
+        statusCode: 404,
+        message: "Invoices not found",
+      });
+    }
+
+    const browser = await initBrowser();
+    page = await browser.newPage();
+
+    await page.setViewport({
+      width: 1200,
+      height: 800,
+      deviceScaleFactor: 2,
+    });
+
+    const zip = new AdmZip();
+
+    page.setDefaultTimeout(60000);
+
+    for (const [index, invoice] of invoices.entries()) {
+      const htmlContent = generateInvoiceHTML(invoice);
+
+      if (!htmlContent) {
+        throw new Error(`Failed to generate HTML for invoice ${invoice.id}`);
+      }
+
+      // networkidle0 hata diya: ye external resources pe atak jaata hai
+      await page.setContent(htmlContent, {
+        waitUntil: "load",
+        timeout: 30000,
+      });
+
+      // Fonts ready ka wait, lekin max 5s, taaki hang na ho
+      await Promise.race([
+        page.evaluate(() => document.fonts.ready),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
+        timeout: 60000,
+      });
+
+      const safeNumber = String(invoice.invoice_number || invoice.id).replace(
+        /[^a-zA-Z0-9-_]/g,
+        "_"
+      );
+      zip.addFile(`invoice-${safeNumber}-${index + 1}.pdf`, Buffer.from(pdfBuffer));
+    }
+    const zipBuffer = zip.toBuffer();
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="invoices.zip"');
+    res.setHeader("Content-Length", zipBuffer.length);
+
+    return res.status(200).send(zipBuffer);
+  } catch (error) {
+    if (error.message?.includes("timeout")) {
+      return res.status(504).json({
+        success: false,
+        statusCode: 504,
+        message: "PDF generation timed out",
+      });
+    }
+
+    if (error.message?.includes("Protocol error")) {
+      // Agar initBrowser browser cache karta hai, to uska reset yahan call karo
+      return res.status(500).json({
+        success: false,
+        statusCode: 500,
+        message: "PDF generation failed. Please try again.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: error.message || "Failed to generate PDF",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  } finally {
+    if (page) {
+      try {
+        await page.close();
+      } catch (closeError) { }
+    }
   }
 }
