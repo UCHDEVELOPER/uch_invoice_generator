@@ -49,7 +49,6 @@ export async function runAllPasses() {
     end.setUTCHours(23, 59, 59, 999);
     console.log(`[CRON] Searching for pending weeks between ${start.toISOString()} and ${end.toISOString()}`);
     const pendingWeeks = await findPendingWeeks(start, end);
-
     if (!pendingWeeks.length) {
       console.log("[CRON] No pending weeks found — nothing to process.");
       return;
