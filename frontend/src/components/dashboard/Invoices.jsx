@@ -1408,7 +1408,7 @@ function Invoices() {
                 ? "Generating..."
                 : "Generate Weekly Invoice"}
             </button>
-            <button
+            {selectedInvoices.length > 0 && <button
               onClick={handleDownloadInvoiceAll}
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -1452,11 +1452,11 @@ function Invoices() {
                     />
                   </svg>
 
-                  <span>Download All</span>
+                  <span>Download </span>
                 </>
               )
               }
-            </button>
+            </button>}
           </div>
         </div>
 
