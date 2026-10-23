@@ -54,7 +54,7 @@ export const bulkUpdateInvoicesToPaid = (data) =>
 export const generateCollectiveBankRemittance = (data) =>
   api.post("/invoice/generate-collective-bank-remittance", data);
 
-export const generateCollectiveInvoiceSummary = (data) => 
+export const generateCollectiveInvoiceSummary = (data) =>
   api.post("/invoice/generate-collective-invoice-summary", data);
 
 export const generateCollectiveDetailedInvoiceSummary = (data) =>
@@ -65,3 +65,11 @@ export const bulkRegenerateInvoice = (data) =>
 
 export const bulkGenerateFinalInvoice = (data) =>
   api.post("/invoice/bulk-generate-final-invoice", data);
+
+export const downloadBulkInvoicePdfUrl = (invoicesId) =>
+  api.post(`/invoice/pdf/bulk-download`,
+    {
+      "ids": invoicesId
+    },
+   {responseType : 'blob'}
+  );

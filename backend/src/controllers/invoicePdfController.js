@@ -295,20 +295,20 @@ export async function generatePdf(req, res) {
 }
 
 export async function downloadBulkPdf(req, res) {
-  const { ids: invoiceId } = req.body;
+  const { ids } = req.body;
   let page = null;
 
   try {
     // Validation
-    if (!invoiceId) {
+    if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
         success: false,
         statusCode: 400,
-        message: "Invoice ID is required",
+        message: "Invoice IDs array is required",
       });
     }
 
-    if (!validateObjectId(invoiceId[0])) {
+    if (!ids.every((id) => validateObjectId(id))) {
       return res.status(400).json({
         success: false,
         statusCode: 400,
@@ -316,9 +316,8 @@ export async function downloadBulkPdf(req, res) {
       });
     }
 
-    // Fetch invoice data
-    const invoiceResponse = await getInvoiceByIdService(invoiceId);
-
+    // Fetch invoices
+    const invoiceResponse = await getInvoiceByIdService(ids);
 
     if (!invoiceResponse?.success) {
       return res.status(invoiceResponse?.statusCode || 404).json({
@@ -328,7 +327,9 @@ export async function downloadBulkPdf(req, res) {
       });
     }
 
-    if (!invoiceResponse?.data) {
+    const invoices = invoiceResponse.data;
+
+    if (!Array.isArray(invoices) || invoices.length === 0) {
       return res.status(404).json({
         success: false,
         statusCode: 404,
@@ -336,26 +337,7 @@ export async function downloadBulkPdf(req, res) {
       });
     }
 
-    const invoiceData = invoiceResponse.data;
-    // if (invoiceData.pdf_url) {
-    //   const pdfFilePath = path.join(PDF_STORAGE_DIR, invoiceData.pdf_url);
-    //   if (fs.existsSync(pdfFilePath)) {
-    //     return res.status(200).json({
-    //       success: true,
-    //       statusCode: 200,
-    //       message: "Invoice PDF URL fetched successfully",
-    //       data: {
-    //         url: invoiceData.pdf_url,
-    //       },
-    //     });
-    //   }
-    // }
-
     const browser = await initBrowser();
-
-
-
-
     page = await browser.newPage();
 
     await page.setViewport({
@@ -363,58 +345,51 @@ export async function downloadBulkPdf(req, res) {
       height: 800,
       deviceScaleFactor: 2,
     });
- const pdfBuffers = [];
 
-for (const invoice of invoiceData) {
-  const uniqueId = uuidv4();
-  const invoiceNumber = invoice.invoice_number || invoiceId;
-  const filename = `invoice-${invoiceNumber}-${uniqueId}.pdf`;
+    const zip = new AdmZip();
 
-  const htmlContent = generateInvoiceHTML(invoice);
+    page.setDefaultTimeout(60000);
 
-  if (!htmlContent) {
-    throw new Error("Failed to generate HTML content");
-  }
+    for (const [index, invoice] of invoices.entries()) {
+      const htmlContent = generateInvoiceHTML(invoice);
 
-  await page.setContent(htmlContent, {
-    waitUntil: ["load", "domcontentloaded", "networkidle0"],
-    timeout: 30000,
-  });
+      if (!htmlContent) {
+        throw new Error(`Failed to generate HTML for invoice ${invoice.id}`);
+      }
 
-  await page.evaluate(() => document.fonts.ready);
+      // networkidle0 hata diya: ye external resources pe atak jaata hai
+      await page.setContent(htmlContent, {
+        waitUntil: "load",
+        timeout: 30000,
+      });
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    preferCSSPageSize: true,
-    margin: {
-      top: "10mm",
-      right: "10mm",
-      bottom: "10mm",
-      left: "10mm",
-    },
-  });
+      // Fonts ready ka wait, lekin max 5s, taaki hang na ho
+      await Promise.race([
+        page.evaluate(() => document.fonts.ready),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
 
-  pdfBuffers.push({
-    fileName: filename,
-    buffer: pdfBuffer,
-  });
-}
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
+        timeout: 60000,
+      });
 
-
-    const zip = new AdmZip()
-    pdfBuffers.forEach(item => {
-      zip.addFile(item.fileName, item.buffer)
-    })
-    const zipBuffer = zip.toBuffer()
+      const safeNumber = String(invoice.invoice_number || invoice.id).replace(
+        /[^a-zA-Z0-9-_]/g,
+        "_"
+      );
+      zip.addFile(`invoice-${safeNumber}-${index + 1}.pdf`, Buffer.from(pdfBuffer));
+    }
+    const zipBuffer = zip.toBuffer();
 
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="invoices.zip"'
-    );
+    res.setHeader("Content-Disposition", 'attachment; filename="invoices.zip"');
+    res.setHeader("Content-Length", zipBuffer.length);
 
-    return res.send(zipBuffer)
+    return res.status(200).send(zipBuffer);
   } catch (error) {
     if (error.message?.includes("timeout")) {
       return res.status(504).json({
@@ -425,7 +400,7 @@ for (const invoice of invoiceData) {
     }
 
     if (error.message?.includes("Protocol error")) {
-      browserInstance = null;
+      // Agar initBrowser browser cache karta hai, to uska reset yahan call karo
       return res.status(500).json({
         success: false,
         statusCode: 500,

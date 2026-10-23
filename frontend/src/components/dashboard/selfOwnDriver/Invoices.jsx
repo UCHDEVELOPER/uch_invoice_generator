@@ -18,7 +18,8 @@ import {
   generateDetailedInvoiceSummary,
   bulkUpdateInvoicesToPaid,
   deleteInvoice,
-  bulkGenerateFinalInvoice
+  bulkGenerateFinalInvoice,
+  downloadBulkSelfOwnInvoicePdfUrl
 } from "@/lib/api/self-own/invoice.api";
 import Loader from "../Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
@@ -163,8 +164,8 @@ function calcFinancials(
 
   const finalTaxDeduction = Math.abs(
     manualDriverTotal +
-      docketTotalVat -
-      (standardVatTotal + standardChargeTotal),
+    docketTotalVat -
+    (standardVatTotal + standardChargeTotal),
   );
 
   const finalTotal = Math.abs(docketTotal - finalTaxDeduction);
@@ -293,7 +294,7 @@ function Invoices() {
   const batchId =
     typeof routeParams?.id === "string" ? routeParams.id : undefined;
   const router = useRouter();
-const [bulkFinalizing,setBulkFinalizing]=useState(false)
+  const [bulkFinalizing, setBulkFinalizing] = useState(false)
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -305,12 +306,13 @@ const [bulkFinalizing,setBulkFinalizing]=useState(false)
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadAll, setDownloadAll] = useState(false)
 
   const [deletingId, setDeletingId] = useState(null);
   const [regeneratingId, setRegeneratingId] = useState(null);
   const [draftInvoice, setDraftInvoice] = useState(null);
 
-const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
+  const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
     useState(false);
 
   // modal states
@@ -365,12 +367,12 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
 
   const totals = draftInvoice
     ? calcFinancials(
-        draftInvoice.driver,
-        n(draftInvoice.docket_total),
-        manualDockets, // already normalized — pass directly
-        additionalData,
-        draftInvoice,
-      )
+      draftInvoice.driver,
+      n(draftInvoice.docket_total),
+      manualDockets, // already normalized — pass directly
+      additionalData,
+      draftInvoice,
+    )
     : null;
 
   // ── data fetching ─────────────────────────────────────────────────────────
@@ -412,7 +414,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
   }, [selectedInvoices, invoices]);
 
   // ── handlers ─────────────────────────────────────────────────────────────
-  
+
   const handlePageChange = (page) => {
     if (page >= 1 && page <= pagination.totalPages && page !== currentPage) {
       setCurrentPage(page);
@@ -420,29 +422,29 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
     }
   };
   const handleGenerateWeeklyInvoice = async () => {
-      try {
-        setGeneratingWeeklyInvoice(true);
-        const response = await generateWeeklyInvoice({});
-  
-        if (response?.data?.success) {
-          toast.success(
-            response.data.message ||
-              "Weekly invoice processing completed successfully",
-          );
-          fetchInvoicesData();
-        } else {
-          toast.error(
-            response?.data?.message || "Failed to generate weekly invoices",
-          );
-        }
-      } catch (error) {
-        toast.error(
-          error?.response?.data?.message || "Failed to generate weekly invoices",
+    try {
+      setGeneratingWeeklyInvoice(true);
+      const response = await generateWeeklyInvoice({});
+
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message ||
+          "Weekly invoice processing completed successfully",
         );
-      } finally {
-        setGeneratingWeeklyInvoice(false);
+        fetchInvoicesData();
+      } else {
+        toast.error(
+          response?.data?.message || "Failed to generate weekly invoices",
+        );
       }
-    };
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to generate weekly invoices",
+      );
+    } finally {
+      setGeneratingWeeklyInvoice(false);
+    }
+  };
 
   const handleSearch = () => setCurrentPage(1);
   const handleSearchKeyDown = (e) => {
@@ -481,7 +483,7 @@ const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
-const handleBulkFinalizeInvoice = async () => {
+  const handleBulkFinalizeInvoice = async () => {
     if (selectedInvoices.length === 0) {
       toast.error("Please select invoices to finalize");
       return;
@@ -575,31 +577,31 @@ const handleBulkFinalizeInvoice = async () => {
     }
   };
 
-  const handleDeleteInvoice= async (invoiceId) => {
-      try {
-        setDeletingId(invoiceId);
-        const response = await deleteInvoice(invoiceId);
-        if (response?.data?.success) {
-          toast.success(
-            response.data.message || "Invoice Deleted successfully",
-          );
-          fetchInvoicesData();
-          return true;
-        } else {
-          // setDeletingId(null)
-
-          toast.error(response?.data?.message || "Failed to delete invoice");
-          throw new Error(response?.data?.message);
-        }
-      } catch (error) {
-        toast.error(
-          error?.response?.data?.message || "Failed to delete invoice",
+  const handleDeleteInvoice = async (invoiceId) => {
+    try {
+      setDeletingId(invoiceId);
+      const response = await deleteInvoice(invoiceId);
+      if (response?.data?.success) {
+        toast.success(
+          response.data.message || "Invoice Deleted successfully",
         );
-        throw error;
-      } finally {
-        setRegeneratingId(null);
+        fetchInvoicesData();
+        return true;
+      } else {
+        // setDeletingId(null)
+
+        toast.error(response?.data?.message || "Failed to delete invoice");
+        throw new Error(response?.data?.message);
       }
-    };
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to delete invoice",
+      );
+      throw error;
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
 
   // date-range report handlers
   const handleGenerateBankRemittance = async (
@@ -712,7 +714,7 @@ const handleBulkFinalizeInvoice = async () => {
     } catch (err) {
       toast.error(
         err?.response?.data?.message ||
-          "Failed to generate Detailed Invoice Summary",
+        "Failed to generate Detailed Invoice Summary",
       );
     } finally {
       setGeneratingDetailedSummary(false);
@@ -826,6 +828,66 @@ const handleBulkFinalizeInvoice = async () => {
       throw err;
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+
+  const handleDownloadInvoiceAll = async () => {
+    if(selectedInvoices.length === 0){
+      return toast.error("Please select the invoice(s) to download")
+    }
+    try {
+      setDownloadAll(true)
+      const alreadyFinalIds = invoices
+        .filter((inv) => selectedInvoices.includes(inv.id) && inv.status === "FINAL")
+        .map((inv) => inv.id);
+      const invoiceIdsToFinalize = selectedInvoices.filter(
+        (id) => alreadyFinalIds.includes(id),
+      );
+
+      if (alreadyFinalIds.length > 0) {
+        const draftCount = selectedInvoices.length - alreadyFinalIds.length;
+        if (alreadyFinalIds.length > 0) {
+          const draftCount = selectedInvoices.length - alreadyFinalIds.length;
+          if (alreadyFinalIds.length === selectedInvoices.length) {
+            toast.success(`${alreadyFinalIds.length}  invoice(s) will be downloaded.`)
+          }
+          else {
+            toast.error(`${alreadyFinalIds.length} selected finalized invoice(s) will be downloaded, while ${draftCount} in draft status will be skipped.`)
+          }
+        };
+      }
+
+      if (invoiceIdsToFinalize.length === 0) {
+        return;
+      }
+      const response = await downloadBulkSelfOwnInvoicePdfUrl(invoiceIdsToFinalize);
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'application/zip' });
+      if (response.status === 200 || response?.data?.statusCode === 200) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'invoices_archive.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success("Invoices downloaded successfully");
+        setSelectedInvoices([])
+        setDownloadAll(false)
+        return true;
+      } else {
+        toast.error(response?.data?.message || "Failed to download invoice");
+        throw new Error(response?.data?.message);
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to download invoice",
+      );
+      setDownloadAll(false)
+      throw error;
+    } finally {
+      setDownloadAll(false)
     }
   };
 
@@ -1024,116 +1086,116 @@ const handleBulkFinalizeInvoice = async () => {
                 </svg>
               </button>
             </div>
-           
+
 
           </div>
-           
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
             {selectedInvoices.length > 0 && (
               <>
-               <button
-                onClick={handleBulkFinalizeInvoice}
-                disabled={bulkFinalizing}
-                className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {bulkFinalizing ? (
-                  <svg
-                    className="animate-spin h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
+                <button
+                  onClick={handleBulkFinalizeInvoice}
+                  disabled={bulkFinalizing}
+                  className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkFinalizing ? (
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-[15px] h-[15px]"
+                      fill="none"
                       stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-[15px] h-[15px]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-                Finalize ({selectedInvoices.length})
-              </button>
-              </>        
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                  Finalize ({selectedInvoices.length})
+                </button>
+              </>
             )}
-              <button
-                onClick={() => setIsBankRemittanceModalOpen(true)}
-                className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-primary border border-primary hover:bg-primary/20 hover:text-primary duration-300 w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white cursor-pointer transition"
+            <button
+              onClick={() => setIsBankRemittanceModalOpen(true)}
+              className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-primary border border-primary hover:bg-primary/20 hover:text-primary duration-300 w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white cursor-pointer transition"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                  />
-                </svg>
-                Bank Remittance
-              </button>
-              <button
-                onClick={() => setIsInvoiceSummaryModalOpen(true)}
-                className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white transition"
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+              Bank Remittance
+            </button>
+            <button
+              onClick={() => setIsInvoiceSummaryModalOpen(true)}
+              className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white transition"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Invoice Summary
-              </button>
-              <button
-                onClick={() => setIsDetailedInvoiceSummaryModalOpen(true)}
-                className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white transition"
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Invoice Summary
+            </button>
+            <button
+              onClick={() => setIsDetailedInvoiceSummaryModalOpen(true)}
+              className="whitespace-nowrap group flex justify-center items-center gap-2 rounded-[6px] bg-[#009249] border border-[#009249] hover:text-[#009249] hover:bg-[#009249]/20 duration-300 cursor-pointer w-full sm:w-auto px-[12px] py-[10px] text-sm font-semibold leading-normal text-white transition"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Detailed Summary
-              </button>
-                 <button
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Detailed Summary
+            </button>
+            <button
               onClick={handleGenerateWeeklyInvoice}
               disabled={generatingWeeklyInvoice}
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1177,7 +1239,56 @@ const handleBulkFinalizeInvoice = async () => {
                 ? "Generating..."
                 : "Generate Weekly Invoice"}
             </button>
-            </div>
+            {selectedInvoices.length > 0 &&<button
+              onClick={handleDownloadInvoiceAll}
+              className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloadAll ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 text-[#223581]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>Downloading...</span>
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+
+                  <span>Download</span>
+                </>
+              )
+              }
+            </button>}
+          </div>
         </div>
 
         {/* ── entries-per-page + count ── */}
@@ -1724,9 +1835,9 @@ const handleBulkFinalizeInvoice = async () => {
                   <span>
                     {fmtGBP(
                       totals.adminFee +
-                        totals.vehicleHire +
-                        totals.insurance +
-                        totals.fuel,
+                      totals.vehicleHire +
+                      totals.insurance +
+                      totals.fuel,
                     )}
                   </span>
                 </div>
@@ -1735,9 +1846,9 @@ const handleBulkFinalizeInvoice = async () => {
                   <span>
                     {fmtGBP(
                       totals.adminVat +
-                        totals.vehicleVat +
-                        totals.insuranceVat +
-                        totals.fuelVat,
+                      totals.vehicleVat +
+                      totals.insuranceVat +
+                      totals.fuelVat,
                     )}
                   </span>
                 </div>

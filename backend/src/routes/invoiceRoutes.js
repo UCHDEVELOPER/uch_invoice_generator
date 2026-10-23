@@ -24,7 +24,7 @@ router.get("/generate-weekly-invoice-temp",tempGenerateWeeklyInvoiceClick)
 router.patch("/update-invoice", verifyToken, missingIdResponse);
 router.patch("/update-invoice/:id", verifyToken, updateInvoice);
 
-router.get("/pdf/:invoiceId",  generatePdf);
+router.get("/pdf/:invoiceId",verifyToken,  generatePdf);
 router.get("/csv/:invoiceId", verifyToken, generateCsv);
 
 router.post("/pdf/bulk-download",downloadBulkPdf);
