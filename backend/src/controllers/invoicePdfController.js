@@ -381,7 +381,7 @@ export async function downloadBulkPdf(req, res) {
         /[^a-zA-Z0-9-_]/g,
         "_"
       );
-      zip.addFile(`invoice-${safeNumber}-${index + 1}.pdf`, Buffer.from(pdfBuffer));
+      zip.addFile(`invoice-${index + 1}-${invoice.driver.name}.pdf`, Buffer.from(pdfBuffer));
     }
     const zipBuffer = zip.toBuffer();
 
