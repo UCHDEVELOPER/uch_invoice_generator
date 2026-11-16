@@ -175,7 +175,7 @@ function JobManagement() {
         toast.error(response.data.message);
         return;
       }
-      toast.success(`${selectedJobs.length} job(s) deleted successfully`);
+      toast.success(response.data.message || "Jobs deleted successfully");
       setSelectedJobs([]);
       setSelectAll(false);
       fetchJobs();
@@ -570,7 +570,7 @@ function JobManagement() {
       <ConfirmModal
         isOpen={showBulkDeleteModal}
         title="Delete Multiple Jobs"
-        description={`Are you sure you want to delete ${selectedJobs.length} job(s)? This action cannot be undone.`}
+        description={`You selected ${selectedJobs.length} job(s). Only jobs that are not invoiced will be deleted; invoiced jobs will be skipped. This action cannot be undone.`}
         confirmText="Delete All"
         cancelText="Cancel"
         loading={deleteLoading}
