@@ -25,6 +25,7 @@ import Loader from "../Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
 import { InvoicePreviewModal } from "../InvoicePreviewModal";
 import { DateRangeModal } from "./../DateRangeModal";
+import ConfirmModal from "../ConfirmModal";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -314,6 +315,8 @@ function Invoices() {
 
   const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
     useState(false);
+  const [isWeeklyInvoiceConfirmOpen, setIsWeeklyInvoiceConfirmOpen] =
+    useState(false);
 
   // modal states
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -444,6 +447,11 @@ function Invoices() {
     } finally {
       setGeneratingWeeklyInvoice(false);
     }
+  };
+
+  const handleConfirmGenerateWeeklyInvoice = () => {
+    setIsWeeklyInvoiceConfirmOpen(false);
+    handleGenerateWeeklyInvoice();
   };
 
   const handleSearch = () => setCurrentPage(1);
@@ -1024,6 +1032,15 @@ function Invoices() {
         loading={generatingDetailedSummary}
         supportedFormats={["csv", "pdf"]}
       />
+      <ConfirmModal
+        isOpen={isWeeklyInvoiceConfirmOpen}
+        title="Generate Weekly Invoices"
+        description="Are you sure you want to generate weekly invoices?"
+        confirmText="Generate"
+        cancelText="Cancel"
+        onCancel={() => setIsWeeklyInvoiceConfirmOpen(false)}
+        onConfirm={handleConfirmGenerateWeeklyInvoice}
+      />
 
       <section>
         {/* ── filter bar ── */}
@@ -1196,7 +1213,7 @@ function Invoices() {
               Detailed Summary
             </button>
             <button
-              onClick={handleGenerateWeeklyInvoice}
+              onClick={() => setIsWeeklyInvoiceConfirmOpen(true)}
               disabled={generatingWeeklyInvoice}
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

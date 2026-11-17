@@ -10,6 +10,7 @@ import {
  */
 export async function processBatch(rows, fileType) {
   const jobsToCreate = [];
+  const jobsToUpdate = new Map();
   const logsToCreate = [];
 
   const driverCache = new Map();
@@ -31,19 +32,32 @@ export async function processBatch(rows, fileType) {
 
   const existingJobs = await prisma.job.findMany({
     where: { docket_no: { in: docketNumbers } },
-    select: { docket_no: true },
+    select: { docket_no: true, is_invoiced: true },
   });
 
-  const existingDocketSet = new Set(existingJobs.map((j) => j.docket_no));
+  const existingJobsByDocket = new Map(
+    existingJobs.map((job) => [job.docket_no, job]),
+  );
+  const seenDocketSet = new Set();
   console.log(rows)
   for (const row of normalizedRows) {
     const docket_no = String(row["Docket"] || "").trim();
     if (!docket_no) continue;
 
-    if (existingDocketSet.has(docket_no)) {
+    if (seenDocketSet.has(docket_no)) {
       logsToCreate.push({
         docket_no,
         reason: "DUPLICATE_DOCKET",
+        row_data: row,
+      });
+      continue;
+    }
+
+    const existingJob = existingJobsByDocket.get(docket_no);
+    if (existingJob?.is_invoiced) {
+      logsToCreate.push({
+        docket_no,
+        reason: "INVOICED_JOB_NOT_UPDATED",
         row_data: row,
       });
       continue;
@@ -122,10 +136,7 @@ export async function processBatch(rows, fileType) {
       driverCache.set(callSign, driver);
     }
 
-    /* ---------------- JOB PREPARATION ---------------- */
-
-    jobsToCreate.push({
-      docket_no,
+    const jobData = {
       call_sign: callSign,
       date_time: parsedDate.toISOString(),
       journey: row["Journey"],
@@ -133,16 +144,37 @@ export async function processBatch(rows, fileType) {
       weight: parseFloat(row["Weight"] || 0),
       driver_total: parseFloat(row["Driver Total"] || 0),
       driver_id: driver.id,
-      is_invoiced: false,
-      invoice_id: null,
-    });
+    };
+
+    if (existingJob) {
+      jobsToUpdate.set(docket_no, jobData);
+    } else {
+      jobsToCreate.push({
+        docket_no,
+        ...jobData,
+        is_invoiced: false,
+        invoice_id: null,
+      });
+    }
+    seenDocketSet.add(docket_no);
   }
 
-  /* ---------------- BULK INSERT JOBS ---------------- */
+  /* ---------------- CREATE AND UPDATE JOBS ---------------- */
   if (jobsToCreate.length) {
     await prisma.job.createMany({
       data: jobsToCreate,
     });
+  }
+
+  if (jobsToUpdate.size) {
+    await Promise.all(
+      [...jobsToUpdate].map(([docket_no, data]) =>
+        prisma.job.update({
+          where: { docket_no },
+          data,
+        }),
+      ),
+    );
   }
 
   /* ---------------- BULK INSERT LOGS ---------------- */

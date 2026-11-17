@@ -30,6 +30,7 @@ import Loader from "./Loader";
 import { calculatePageNumbers } from "@/utils/helpers";
 import { InvoicePreviewModal } from "./InvoicePreviewModal";
 import { DateRangeModal } from "./DateRangeModal";
+import ConfirmModal from "./ConfirmModal";
 function Invoices() {
   const router = useRouter();
   const routeParams = useParams();
@@ -93,6 +94,8 @@ function Invoices() {
     setGeneratingCollectiveDetailedSummary,
   ] = useState(false);
   const [generatingWeeklyInvoice, setGeneratingWeeklyInvoice] =
+    useState(false);
+  const [isWeeklyInvoiceConfirmOpen, setIsWeeklyInvoiceConfirmOpen] =
     useState(false);
 
   const [generatingRemittance, setGeneratingRemittance] = useState(false);
@@ -639,6 +642,11 @@ function Invoices() {
     }
   };
 
+  const handleConfirmGenerateWeeklyInvoice = () => {
+    setIsWeeklyInvoiceConfirmOpen(false);
+    handleGenerateWeeklyInvoice();
+  };
+
   const handlePreviewInvoice = async (invoiceId) => {
     try {
       setPreviewLoading(true);
@@ -1033,6 +1041,15 @@ function Invoices() {
         loading={generatingCollectiveDetailedSummary}
         supportedFormats={["csv", "pdf"]}
       />
+      <ConfirmModal
+        isOpen={isWeeklyInvoiceConfirmOpen}
+        title="Generate Weekly Invoices"
+        description="Are you sure you want to generate weekly invoices?"
+        confirmText="Generate"
+        cancelText="Cancel"
+        onCancel={() => setIsWeeklyInvoiceConfirmOpen(false)}
+        onConfirm={handleConfirmGenerateWeeklyInvoice}
+      />
 
       <section>
         {/* ── Top filter bar ─────────────────────────────────────── */}
@@ -1365,7 +1382,7 @@ function Invoices() {
             </button>
 
             <button
-              onClick={handleGenerateWeeklyInvoice}
+              onClick={() => setIsWeeklyInvoiceConfirmOpen(true)}
               disabled={generatingWeeklyInvoice}
               className="whitespace-nowrap group flex justify-center items-center gap-[5px] rounded-[6px] bg-secondary border border-secondary hover:text-secondary hover:bg-secondary/20 duration-300 cursor-pointer w-full sm:w-[fit-content] min-w-[100px] px-[25px] py-[10px] text-sm font-semibold leading-normal text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

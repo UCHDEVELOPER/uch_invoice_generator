@@ -336,22 +336,40 @@ export async function deleteJobService(id) {
 
 export async function deleteBulkJobsService(jobIds) {
   try {
-    await prisma.$transaction([
-      prisma.jobChangeHistory.deleteMany({
-        where: { job_id: { in: jobIds } },
-      }),
-      prisma.selfInvoiceJob.deleteMany({
-        where: { job_id: { in: jobIds } },
-      }),
-      prisma.selfJob.deleteMany({
-        where: { id: { in: jobIds } },
-      }),
-    ]);
+    const deletedCount = await prisma.$transaction(async (tx) => {
+      const jobsToDelete = await tx.selfJob.findMany({
+        where: {
+          id: { in: jobIds },
+          is_invoiced: false,
+        },
+        select: { id: true },
+      });
+      const deletableJobIds = jobsToDelete.map((job) => job.id);
+
+      if (deletableJobIds.length === 0) return 0;
+
+      await tx.selfJobChangeHistory.deleteMany({
+        where: { job_id: { in: deletableJobIds } },
+      });
+      await tx.selfInvoiceJob.deleteMany({
+        where: { job_id: { in: deletableJobIds } },
+      });
+      const result = await tx.selfJob.deleteMany({
+        where: {
+          id: { in: deletableJobIds },
+          is_invoiced: false,
+        },
+      });
+
+      return result.count;
+    });
 
     return {
       success: true,
       statusCode: 200,
-      message: "Jobs deleted successfully",
+      message: deletedCount
+        ? "Uninvoiced jobs deleted successfully. Invoiced jobs were skipped."
+        : "No jobs deleted. Invoiced jobs cannot be deleted.",
     };
   } catch (err) {
     return {
