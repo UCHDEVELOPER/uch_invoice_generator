@@ -34,11 +34,21 @@ export async function findPendingWeeks(start, end) {
         start && end
           ? { gte: start, lte: end }
           : { not: null },
-      driver: {
-        status: "active",
-        per_hour_rate: { gt: 0 },
-        total_hours: { gt: 0 },
-      },
+      OR: [
+        {
+          driver: {
+            status: "active",
+            per_hour_rate: { gt: 0 },
+            total_hours: { gt: 0 },
+          },
+        },
+        {
+          driver_id: null,
+          call_sign: null,
+          weight: { gte: 0 },
+          driver_total: { gt: 0 },
+        },
+      ],
     },
     select: { date_time: true },
   });
